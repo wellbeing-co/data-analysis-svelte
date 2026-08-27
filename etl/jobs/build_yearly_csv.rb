@@ -62,8 +62,8 @@ job = Kiba.parse do
     tag_row = tags[id]
 
     unless tag_row
-      warn "WARNING: #{File.basename(path)} has no matching tagging row (id=#{id})." \
-           " Run jobs/extract_for_tagging.rb #{year} again before building. Skipping this file."
+      warn "WARNING: #{File.basename(path)} has no matching tagging row (id=#{id}). " \
+           "Run jobs/extract_for_tagging.rb #{year} again before building. Skipping this file."
       next nil
     end
 
@@ -101,7 +101,7 @@ job = Kiba.parse do
       "sleep_issue" => yes_no_unknown(tag_row["sleep_issue"]),
       "stress_burnout" => yes_no_unknown(tag_row["stress_burnout"]),
       "acupuncture_referral" => yes_no_unknown(tag_row["acupuncture_referral"]),
-      "mental_health_referral" => yes_no_unknown(tag_row["mental_health_referral"]),
+      "mental_health_referral" => yes_no_unknown(tag_row["mental_health_referral"])
     }
   end
 

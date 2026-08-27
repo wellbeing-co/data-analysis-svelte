@@ -61,7 +61,7 @@ module Etl
     def propose!(submitted_tags)
       current = Etl::TaggingStore.load(tagging_path)
 
-      updated = current.map do |id, row|
+      updated = current.to_h do |id, row|
         next [id, row] unless submitted_tags.key?(id)
 
         merged = row.dup
@@ -70,7 +70,7 @@ module Etl
           merged[column] = value unless value.nil? || value.strip.empty?
         end
         [id, merged]
-      end.to_h
+      end
 
       FileUtils.mkdir_p(PENDING_DIR)
       Etl::TaggingStore.write(pending_path, updated.values)
@@ -100,7 +100,7 @@ module Etl
           pseudonymous_id: id,
           source_file: proposed_row["source_file"],
           excerpt: proposed_row["personal_report_excerpt"],
-          changes: changes,
+          changes: changes
         }
       end
     end
@@ -114,14 +114,14 @@ module Etl
       current = Etl::TaggingStore.load(tagging_path)
       proposed = pending_rows
 
-      merged = current.map do |id, row|
+      merged = current.to_h do |id, row|
         proposed_row = proposed[id]
         next [id, row] unless proposed_row
 
         new_row = row.dup
         Etl::TaggingStore::TAG_COLUMNS.each { |c| new_row[c] = proposed_row[c] }
         [id, new_row]
-      end.to_h
+      end
 
       Etl::TaggingStore.write(tagging_path, merged.values)
       File.delete(pending_path)

@@ -9,7 +9,7 @@ module Etl
   # non-technical reviewer without ever committing a secret to git.
   module TaggingWebCredentials
     PATH = File.expand_path("../../config/tagging_web_credentials.txt", __dir__)
-    DEFAULT_USERNAME = "reviewer"
+    DEFAULT_USERNAME = "reviewer".freeze
 
     Credentials = Struct.new(:username, :password)
 

@@ -40,7 +40,9 @@ csv_files.each do |path|
   violations << "#{path}: contains forbidden column(s) #{found_forbidden.join(', ')}" if found_forbidden.any?
 
   missing_required = REQUIRED_HEADERS - normalised
-  violations << "#{path}: missing required anonymisation column(s) #{missing_required.join(', ')}" if missing_required.any?
+  if missing_required.any?
+    violations << "#{path}: missing required anonymisation column(s) #{missing_required.join(', ')}"
+  end
 end
 
 if violations.empty?

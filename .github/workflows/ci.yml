@@ -49,12 +49,29 @@ jobs:
           bundle exec bundle-audit update
           bundle exec bundle-audit check
 
+  ruby-lint:
+    name: Ruby lint (RuboCop)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+          working-directory: etl
+
+      - name: RuboCop
+        working-directory: etl
+        run: bundle exec rubocop --format github
+
   codeql:
     name: CodeQL (${{ matrix.language }})
     runs-on: ubuntu-latest
     permissions:
       security-events: write
       contents: read
+      actions: read
     strategy:
       fail-fast: false
       matrix:
@@ -71,6 +88,7 @@ jobs:
       - uses: github/codeql-action/analyze@v3
         with:
           category: "/language:${{ matrix.language }}"
+          upload: false
 
   svelte-tests:
     name: Svelte checks, tests & build

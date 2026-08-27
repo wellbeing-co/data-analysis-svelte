@@ -32,13 +32,13 @@ module Etl
       return nil if systolic.nil? || diastolic.nil?
 
       systolic_cat = if systolic >= 140 then :red
-                      elsif systolic >= 130 then :amber
+                     elsif systolic >= 130 then :amber
+                     else :green
+                     end
+      diastolic_cat = if diastolic >= 90 then :red
+                      elsif diastolic >= 85 then :amber
                       else :green
                       end
-      diastolic_cat = if diastolic >= 90 then :red
-                       elsif diastolic >= 85 then :amber
-                       else :green
-                       end
       worse_category(systolic_cat, diastolic_cat)
     end
 
@@ -80,7 +80,7 @@ module Etl
       "under eating", "undereating", "under-eating",
       "not eating enough", "skipping meals", "skips meals", "skip meals",
       "restrict", "low calorie", "low-calorie", "insufficient intake",
-      "not fuelling", "not fueling", "inadequate intake",
+      "not fuelling", "not fueling", "inadequate intake"
     ].freeze
 
     def nutritional_underfuelling_flag(nutrition_text)

@@ -10,8 +10,8 @@ module Etl
     def self.load(path)
       return {} unless File.exist?(path)
 
-      CSV.read(path, headers: true).each_with_object({}) do |row, hash|
-        hash[row["pseudonymous_id"]] = row.to_h
+      CSV.read(path, headers: true).to_h do |row|
+        [row["pseudonymous_id"], row.to_h]
       end
     end
 
