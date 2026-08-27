@@ -21,15 +21,44 @@ export interface TaggingRow {
 	personal_report_excerpt: string;
 }
 
+export interface RawFileInfo {
+	name: string;
+	size: number;
+	mtimeMs: number;
+}
+
+export interface ImportFilesResult {
+	folder: string;
+	total: number;
+	imported: number;
+	skipped: number;
+	importedNames: string[];
+	skippedNames: string[];
+}
+
+export interface ExtractionFailure {
+	file: string;
+	error: string;
+}
+
 export interface DesktopApi {
 	isDesktop: true;
-	getSettings(): Promise<{ rawDataDir: string | null }>;
-	chooseRawDataFolder(): Promise<string | null>;
+	listRawYears(): Promise<string[]>;
+	createRawYear(year: string): Promise<{ ok: true }>;
+	listRawFiles(year: string): Promise<RawFileInfo[]>;
+	chooseDocxFiles(): Promise<string[]>;
+	chooseFolderToImport(): Promise<string[]>;
+	importRawFiles(year: string, filePaths: string[]): Promise<ImportFilesResult>;
+	removeRawFile(year: string, name: string): Promise<{ ok: true }>;
 	listYears(): Promise<YearStatus[]>;
-	extractForTagging(year: string): Promise<{ rows: TaggingRow[] }>;
+	extractForTagging(
+		year: string
+	): Promise<{ rows: TaggingRow[]; failures: ExtractionFailure[] }>;
 	getTagging(year: string): Promise<{ rows: TaggingRow[] }>;
 	saveTagging(year: string, rows: TaggingRow[]): Promise<{ ok: true }>;
-	buildYearlyCsv(year: string): Promise<{ ok: true; rowCount: number }>;
+	buildYearlyCsv(
+		year: string
+	): Promise<{ ok: true; rowCount: number; failures: ExtractionFailure[] }>;
 	generateDemoData(year: string): Promise<{ ok: true }>;
 	openUserDataFolder(): Promise<void>;
 }

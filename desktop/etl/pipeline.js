@@ -38,6 +38,25 @@ function yesNoUnknown(value) {
   return "Unknown";
 }
 
+// extractReport() throws a low-level jszip/xml error (e.g. "Can't find end of
+// central directory") when a file isn't a valid, complete .docx - which
+// happens when a file is corrupted, still syncing from cloud storage, or is
+// actually a different format (e.g. a legacy .doc) saved with a .docx
+// extension. Wrap that into a message naming the offending file, so a single
+// bad file doesn't produce a confusing crash and can be reported/skipped
+// instead of aborting the whole folder.
+async function safeExtractReport(filePath, sourceFile) {
+  try {
+    return await extractReport(filePath);
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err);
+    throw new Error(
+      `Could not read "${sourceFile}" as a .docx file (${reason}). It may be corrupted, still ` +
+        `syncing from cloud storage, or saved in a different format - remove or re-export it and try again.`
+    );
+  }
+}
+
 /**
  * Stage 1: scan a year's folder of .docx reports and produce/update the
  * tagging CSV for that year, preserving any tags already filled in.
@@ -45,10 +64,17 @@ function yesNoUnknown(value) {
 async function extractForTagging({ yearFolder, taggingCsvPath, year, salt }) {
   const existingTags = taggingStore.loadTagging(taggingCsvPath);
   const rows = [];
+  const failures = [];
 
   for (const filePath of listDocxFiles(yearFolder)) {
     const sourceFile = path.basename(filePath);
-    const report = await extractReport(filePath);
+    let report;
+    try {
+      report = await safeExtractReport(filePath, sourceFile);
+    } catch (err) {
+      failures.push({ file: sourceFile, error: err.message });
+      continue;
+    }
     const id = derivations.pseudonymousId(year, sourceFile, salt);
     const existing = existingTags[id];
 
@@ -66,7 +92,7 @@ async function extractForTagging({ yearFolder, taggingCsvPath, year, salt }) {
   }
 
   taggingStore.writeTagging(taggingCsvPath, rows);
-  return { rows, taggingCsvPath };
+  return { rows, taggingCsvPath, failures };
 }
 
 /**
@@ -82,10 +108,17 @@ async function buildYearlyCsv({ yearFolder, taggingCsvPath, outputCsvPath, year,
 
   const tags = taggingStore.loadTagging(taggingCsvPath);
   const rows = [];
+  const failures = [];
 
   for (const filePath of listDocxFiles(yearFolder)) {
     const sourceFile = path.basename(filePath);
-    const report = await extractReport(filePath);
+    let report;
+    try {
+      report = await safeExtractReport(filePath, sourceFile);
+    } catch (err) {
+      failures.push({ file: sourceFile, error: err.message });
+      continue;
+    }
     const id = derivations.pseudonymousId(year, sourceFile, salt);
     const tagRow = tags[id];
 
@@ -141,7 +174,7 @@ async function buildYearlyCsv({ yearFolder, taggingCsvPath, outputCsvPath, year,
   const data = rows.map((row) => OUTPUT_HEADERS.map((header) => row[header] ?? ""));
   fs.writeFileSync(outputCsvPath, stringify([OUTPUT_HEADERS, ...data]));
 
-  return { rows, outputCsvPath };
+  return { rows, outputCsvPath, failures };
 }
 
 module.exports = { OUTPUT_HEADERS, listDocxFiles, yesNoUnknown, extractForTagging, buildYearlyCsv };

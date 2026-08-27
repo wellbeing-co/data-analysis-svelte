@@ -11,6 +11,7 @@ function ensureDir(dir) {
 function buildPaths(userDataDir) {
   const etlDir = path.join(userDataDir, "etl");
   const publishedDir = path.join(userDataDir, "published");
+  const rawDataDir = path.join(userDataDir, "raw-data");
 
   return {
     settingsFile: path.join(userDataDir, "settings.json"),
@@ -18,7 +19,11 @@ function buildPaths(userDataDir) {
     taggingDir: path.join(etlDir, "tagging"),
     outputDir: path.join(etlDir, "output"),
     publishedDir,
+    rawDataDir,
     yearsJsonFile: path.join(publishedDir, "years.json"),
+    rawYearFolder(year) {
+      return path.join(this.rawDataDir, year);
+    },
     taggingPath(year) {
       return path.join(this.taggingDir, `${year}_tagging.csv`);
     },
@@ -33,6 +38,7 @@ function buildPaths(userDataDir) {
       ensureDir(this.outputDir);
       ensureDir(path.dirname(this.saltFile));
       ensureDir(this.publishedDir);
+      ensureDir(this.rawDataDir);
       return this;
     }
   };

@@ -89,3 +89,38 @@ test("full extract -> fill tags -> build round trip produces the expected CSV", 
   assert.equal(records.length, 1);
   assert.deepEqual(Object.keys(records[0]), pipeline.OUTPUT_HEADERS);
 });
+
+test("extractForTagging and buildYearlyCsv skip a corrupted .docx instead of crashing the whole folder", async () => {
+  const mixedDir = fs.mkdtempSync(path.join(os.tmpdir(), "wellbeing-pipeline-mixed-"));
+  try {
+    fs.writeFileSync(path.join(mixedDir, "good.docx"), await buildSampleDocxBuffer());
+    fs.writeFileSync(path.join(mixedDir, "corrupted.docx"), "this is not a zip file");
+
+    const mixedTaggingPath = path.join(mixedDir, "tagging.csv");
+    const mixedOutputPath = path.join(mixedDir, "output.csv");
+
+    const extracted = await pipeline.extractForTagging({
+      yearFolder: mixedDir,
+      taggingCsvPath: mixedTaggingPath,
+      year,
+      salt
+    });
+    assert.equal(extracted.rows.length, 1);
+    assert.equal(extracted.failures.length, 1);
+    assert.equal(extracted.failures[0].file, "corrupted.docx");
+    assert.match(extracted.failures[0].error, /corrupted\.docx/);
+
+    const built = await pipeline.buildYearlyCsv({
+      yearFolder: mixedDir,
+      taggingCsvPath: mixedTaggingPath,
+      outputCsvPath: mixedOutputPath,
+      year,
+      salt
+    });
+    assert.equal(built.rows.length, 1);
+    assert.equal(built.failures.length, 1);
+    assert.equal(built.failures[0].file, "corrupted.docx");
+  } finally {
+    fs.rmSync(mixedDir, { recursive: true, force: true });
+  }
+});

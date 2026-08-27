@@ -99,15 +99,23 @@ with a clean machine and no developer tools installed.
 - An Electron shell (`desktop/electron/`) hosts the dashboard (built as a
   static SPA, see `app/vite.config.desktop.ts`) over a local HTTP server, and
   drives the Node ETL via IPC from a `Manage data` screen.
-  (`app/src/routes/manage/`) - choose the folder of yearly `.docx` reports,
-  extract, tag Y/N/Unknown for each flag directly in the app, build and
+  (`app/src/routes/manage/`) - create a year folder, add `.docx` reports to
+  it, extract, tag Y/N/Unknown for each flag directly in the app, build and
   publish, all without a terminal.
-- Everything the desktop app reads/writes (chosen folder path, the
+- The app never reads reports from an external, user-owned folder - every
+  `.docx` file is explicitly **copied into the app's own storage**
+  (`userData/raw-data/<year>/`) when added, with the exact number of files
+  found and saved (or skipped as duplicates) shown before/after the copy.
+  Each year's folder can be inspected and files removed individually from
+  `Manage data`.
+- Everything the desktop app reads/writes (the copied `.docx` reports, the
   pseudonymisation salt, tagging/output CSVs, published data) lives under the
   OS's normal per-app data directory (`app.getPath('userData')`) - nothing is
   written elsewhere, and no admin rights are needed to run it.
-- If no data has been published yet, the app seeds itself with demo data on
-  first launch, the same idea as `bin/run`'s empty-folder fallback.
+- The desktop app ships with no sample data. On first launch it shows a
+  welcome screen asking the user to pick a year and add `.docx` files, after
+  which they land on `Manage data` to add more files, extract, tag and
+  publish.
 
 Build it locally with:
 

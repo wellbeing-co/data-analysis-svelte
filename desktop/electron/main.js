@@ -18,28 +18,35 @@ let httpServer = null;
 let serverPort = 0;
 let paths = null;
 
-function readSettings() {
-  try {
-    return JSON.parse(fs.readFileSync(paths.settingsFile, "utf8"));
-  } catch {
-    return { rawDataDir: null };
+function ensureValidYearName(year) {
+  if (typeof year !== "string" || !/^\d{4}$/.test(year)) {
+    throw new Error(`Invalid year folder name: "${year}". Use a 4-digit year, e.g. 2024.`);
   }
 }
 
-function writeSettings(settings) {
-  fs.writeFileSync(paths.settingsFile, JSON.stringify(settings, null, 2));
+function ensureSafeFileName(name) {
+  if (
+    typeof name !== "string" ||
+    name.length === 0 ||
+    name.includes("/") ||
+    name.includes("\\") ||
+    name === "." ||
+    name === ".."
+  ) {
+    throw new Error(`Invalid file name: "${name}".`);
+  }
 }
 
-function yearFolder(rawDataDir, year) {
-  return path.join(rawDataDir, year);
-}
-
-function countDocx(folder) {
-  if (!fs.existsSync(folder)) return 0;
+function listDocxFiles(folder) {
+  if (!fs.existsSync(folder)) return [];
   return fs
     .readdirSync(folder)
     .filter((name) => /\.docx$/i.test(name) && !name.startsWith(".") && !name.startsWith("~$"))
-    .length;
+    .sort();
+}
+
+function countDocx(folder) {
+  return listDocxFiles(folder).length;
 }
 
 function discoverYears(rawDataDir) {
@@ -77,28 +84,87 @@ function publishYear(year, outputCsvPath) {
 }
 
 function registerIpcHandlers() {
-  ipcMain.handle("settings:get", () => readSettings());
+  ipcMain.handle("rawData:listYears", () => discoverYears(paths.rawDataDir));
 
-  ipcMain.handle("dialog:chooseRawDataFolder", async () => {
+  ipcMain.handle("rawData:createYear", (_event, year) => {
+    ensureValidYearName(year);
+    fs.mkdirSync(paths.rawYearFolder(year), { recursive: true });
+    return { ok: true };
+  });
+
+  ipcMain.handle("rawData:listFiles", (_event, year) => {
+    ensureValidYearName(year);
+    const folder = paths.rawYearFolder(year);
+    return listDocxFiles(folder).map((name) => {
+      const { size, mtimeMs } = fs.statSync(path.join(folder, name));
+      return { name, size, mtimeMs };
+    });
+  });
+
+  ipcMain.handle("dialog:chooseDocxFiles", async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ["openFile", "multiSelections"],
+      filters: [{ name: "Word documents", extensions: ["docx"] }],
+      title: "Choose one or more .docx report files to add"
+    });
+    if (result.canceled) return [];
+    return result.filePaths;
+  });
+
+  ipcMain.handle("dialog:chooseFolderToImport", async () => {
     const result = await dialog.showOpenDialog(mainWindow, {
       properties: ["openDirectory"],
-      title: "Choose the folder containing one subfolder per year of .docx reports"
+      title: "Choose a folder to scan for .docx report files"
     });
-    if (result.canceled || result.filePaths.length === 0) return null;
+    if (result.canceled || result.filePaths.length === 0) return [];
 
-    const [chosen] = result.filePaths;
-    writeSettings({ ...readSettings(), rawDataDir: chosen });
-    return chosen;
+    const [folder] = result.filePaths;
+    return listDocxFiles(folder).map((name) => path.join(folder, name));
+  });
+
+  ipcMain.handle("rawData:importFiles", (_event, year, filePaths) => {
+    ensureValidYearName(year);
+    const folder = paths.rawYearFolder(year);
+    fs.mkdirSync(folder, { recursive: true });
+
+    const importedNames = [];
+    const skippedNames = [];
+    for (const filePath of filePaths) {
+      const name = path.basename(filePath);
+      const dest = path.join(folder, name);
+      if (fs.existsSync(dest)) {
+        skippedNames.push(name);
+        continue;
+      }
+      fs.copyFileSync(filePath, dest);
+      importedNames.push(name);
+    }
+
+    return {
+      folder,
+      total: filePaths.length,
+      imported: importedNames.length,
+      skipped: skippedNames.length,
+      importedNames,
+      skippedNames
+    };
+  });
+
+  ipcMain.handle("rawData:removeFile", (_event, year, name) => {
+    ensureValidYearName(year);
+    ensureSafeFileName(name);
+    const target = path.join(paths.rawYearFolder(year), name);
+    if (fs.existsSync(target)) fs.unlinkSync(target);
+    return { ok: true };
   });
 
   ipcMain.handle("etl:listYears", () => {
-    const { rawDataDir } = readSettings();
     const publishedYears = fs.existsSync(paths.yearsJsonFile)
       ? JSON.parse(fs.readFileSync(paths.yearsJsonFile, "utf8"))
       : [];
 
-    return discoverYears(rawDataDir).map((year) => {
-      const docxCount = countDocx(yearFolder(rawDataDir, year));
+    return discoverYears(paths.rawDataDir).map((year) => {
+      const docxCount = countDocx(paths.rawYearFolder(year));
       const taggingPath = paths.taggingPath(year);
       const hasTagging = fs.existsSync(taggingPath);
       return {
@@ -113,11 +179,8 @@ function registerIpcHandlers() {
   });
 
   ipcMain.handle("etl:extractForTagging", async (_event, year) => {
-    const { rawDataDir } = readSettings();
-    if (!rawDataDir) throw new Error("Choose a raw data folder first.");
-
     const result = await pipeline.extractForTagging({
-      yearFolder: yearFolder(rawDataDir, year),
+      yearFolder: paths.rawYearFolder(year),
       taggingCsvPath: paths.taggingPath(year),
       year,
       salt: getSalt(path.dirname(paths.saltFile))
@@ -136,18 +199,15 @@ function registerIpcHandlers() {
   });
 
   ipcMain.handle("etl:buildYearlyCsv", async (_event, year) => {
-    const { rawDataDir } = readSettings();
-    if (!rawDataDir) throw new Error("Choose a raw data folder first.");
-
     const result = await pipeline.buildYearlyCsv({
-      yearFolder: yearFolder(rawDataDir, year),
+      yearFolder: paths.rawYearFolder(year),
       taggingCsvPath: paths.taggingPath(year),
       outputCsvPath: paths.outputPath(year),
       year,
       salt: getSalt(path.dirname(paths.saltFile))
     });
     publishYear(year, paths.outputPath(year));
-    return { ok: true, rowCount: result.rows.length };
+    return { ok: true, rowCount: result.rows.length, failures: result.failures };
   });
 
   ipcMain.handle("etl:generateDemoData", async (_event, year) => {
@@ -173,17 +233,6 @@ function startLocalServer() {
   });
 }
 
-async function seedDemoDataIfEmpty() {
-  const hasAnyPublished = fs.existsSync(paths.yearsJsonFile);
-  if (hasAnyPublished) return;
-
-  const year = String(new Date().getFullYear());
-  const csv = await demoData.generateDemoCsv(year);
-  fs.mkdirSync(paths.outputDir, { recursive: true });
-  fs.writeFileSync(paths.outputPath(year), csv);
-  publishYear(year, paths.outputPath(year));
-}
-
 async function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -203,7 +252,6 @@ async function createWindow() {
 app.whenReady().then(async () => {
   paths = buildPaths(app.getPath("userData")).ensureAll();
   registerIpcHandlers();
-  await seedDemoDataIfEmpty();
   await startLocalServer();
   await createWindow();
 

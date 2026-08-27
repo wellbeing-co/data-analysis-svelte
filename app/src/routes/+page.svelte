@@ -14,21 +14,36 @@
 	import BarChart from '$lib/components/BarChart.svelte';
 	import StatCard from '$lib/components/StatCard.svelte';
 	import TrendChart from '$lib/components/TrendChart.svelte';
+	import WelcomeScreen from '$lib/components/WelcomeScreen.svelte';
 
-	const isDesktop = desktopApi() !== null;
+	const api = desktopApi();
+	const isDesktop = api !== null;
 
 	let years = $state<string[]>([]);
 	let selectedYear = $state<string>('');
 	let rows = $state<AssessmentRow[]>([]);
-	let loading = $state(true);
+	let loading = $state(false);
 	let error = $state<string | null>(null);
 	let summaries = $state<YearlySummary[]>([]);
+	let needsWelcome = $state(false);
+	let checkingWelcome = $state(isDesktop);
+	let checkingYears = $state(true);
 
 	$effect(() => {
-		loadAvailableYears().then((available) => {
-			years = available;
-			if (available.length > 0) selectedYear = available[available.length - 1];
+		if (!api) return;
+		api.listRawYears().then((rawYears) => {
+			needsWelcome = rawYears.length === 0;
+			checkingWelcome = false;
 		});
+	});
+
+	$effect(() => {
+		loadAvailableYears()
+			.then((available) => {
+				years = available;
+				if (available.length > 0) selectedYear = available[available.length - 1];
+			})
+			.finally(() => (checkingYears = false));
 	});
 
 	$effect(() => {
@@ -85,6 +100,11 @@
 	<title>Wellbeing Reporting - {selectedYear || '...'}</title>
 </svelte:head>
 
+{#if checkingWelcome}
+	<!-- Avoid flashing the dashboard before we know whether a data folder has been chosen. -->
+{:else if needsWelcome}
+	<WelcomeScreen />
+{:else}
 <main>
 	<header class="masthead">
 		<p class="kicker">Complete Wellbeing - Anonymised Health Assessments</p>
@@ -107,9 +127,22 @@
 		{/if}
 	</header>
 
-	{#if error}
+	{#if checkingYears}
+		<p class="loading">Checking for published reports...</p>
+	{:else if error}
 		<p class="error">
 			{error}. Has the ETL output been copied into <code>app/static/data/</code>?
+		</p>
+	{:else if years.length === 0}
+		<p class="empty">
+			No published reports yet.
+			{#if isDesktop}
+				Files have been added, but no year has been extracted, tagged and built into a
+				report. <a href="/manage">Go to Manage this year's data</a> to run those steps.
+			{:else}
+				Copy a year's CSV into <code>app/static/data/</code> and add it to
+				<code>years.json</code> to see it here.
+			{/if}
 		</p>
 	{:else if loading}
 		<p class="loading">Loading the {selectedYear} report...</p>
@@ -229,6 +262,7 @@
 		</p>
 	</footer>
 </main>
+{/if}
 
 <style>
 	main {
@@ -285,11 +319,21 @@
 	}
 
 	.loading,
-	.error {
+	.error,
+	.empty {
 		text-align: center;
 	}
 	.error {
 		color: var(--color-accent);
+	}
+	.empty {
+		max-width: 34rem;
+		margin: 0 auto;
+		color: var(--color-ink);
+	}
+	.empty a {
+		color: var(--color-accent);
+		font-weight: 600;
 	}
 
 	.chapter {

@@ -1,15 +1,26 @@
 <script lang="ts">
-	import { desktopApi, type TaggingRow, type YearStatus } from '$lib/desktopApi';
+	import {
+		desktopApi,
+		type ExtractionFailure,
+		type RawFileInfo,
+		type TaggingRow,
+		type YearStatus
+	} from '$lib/desktopApi';
 
 	const api = desktopApi();
 
-	let rawDataDir = $state<string | null>(null);
 	let years = $state<YearStatus[]>([]);
 	let activeYear = $state<string | null>(null);
 	let taggingRows = $state<TaggingRow[]>([]);
 	let busy = $state(false);
 	let message = $state<string | null>(null);
 	let errorMessage = $state<string | null>(null);
+	let failures = $state<ExtractionFailure[]>([]);
+
+	let newYear = $state(String(new Date().getFullYear()));
+	let filesYear = $state<string | null>(null);
+	let rawFiles = $state<RawFileInfo[]>([]);
+	let pendingFiles = $state<string[]>([]);
 
 	const TAG_FIELDS = [
 		'sleep_issue',
@@ -20,9 +31,8 @@
 
 	async function refresh() {
 		if (!api) return;
-		const settings = await api.getSettings();
-		rawDataDir = settings.rawDataDir;
 		years = await api.listYears();
+		if (filesYear) rawFiles = await api.listRawFiles(filesYear);
 	}
 
 	async function run<T>(action: () => Promise<T>): Promise<T | undefined> {
@@ -39,10 +49,83 @@
 		}
 	}
 
-	async function chooseFolder() {
-		const chosen = await run(() => api!.chooseRawDataFolder());
-		if (chosen) {
-			message = `Raw data folder set to ${chosen}`;
+	function isValidYear(value: string) {
+		return /^\d{4}$/.test(value);
+	}
+
+	async function createYear() {
+		if (!isValidYear(newYear)) {
+			errorMessage = 'Enter a 4-digit year, e.g. 2024.';
+			return;
+		}
+		const result = await run(() => api!.createRawYear(newYear));
+		if (result) {
+			message = `Created the "${newYear}" folder.`;
+			await openFiles(newYear);
+			await refresh();
+		}
+	}
+
+	async function openFiles(year: string) {
+		filesYear = year;
+		pendingFiles = [];
+		const result = await run(() => api!.listRawFiles(year));
+		if (result) rawFiles = result;
+	}
+
+	function closeFiles() {
+		filesYear = null;
+		rawFiles = [];
+		pendingFiles = [];
+	}
+
+	async function chooseFiles() {
+		const chosen = await run(() => api!.chooseDocxFiles());
+		if (chosen && chosen.length > 0) {
+			pendingFiles = chosen;
+			message = null;
+		}
+	}
+
+	async function chooseFolderToImport() {
+		const found = await run(() => api!.chooseFolderToImport());
+		if (found) {
+			if (found.length === 0) {
+				errorMessage = 'No .docx files were found in that folder.';
+			} else {
+				pendingFiles = found;
+				message = null;
+			}
+		}
+	}
+
+	function cancelPendingFiles() {
+		pendingFiles = [];
+	}
+
+	async function confirmImport() {
+		if (!filesYear || pendingFiles.length === 0) return;
+		const year = filesYear;
+		// Svelte 5's $state arrays are Proxies, which Electron's contextBridge
+		// cannot structured-clone across the IPC boundary ("An object could not
+		// be cloned") - take a plain snapshot before sending it over IPC.
+		const files = $state.snapshot(pendingFiles);
+		const result = await run(() => api!.importRawFiles(year, files));
+		if (result) {
+			pendingFiles = [];
+			message =
+				`Saved ${result.imported} of ${result.total} file(s) into "${year}"` +
+				(result.skipped > 0 ? ` (${result.skipped} already existed and were skipped).` : '.');
+			await openFiles(year);
+			await refresh();
+		}
+	}
+
+	async function removeFile(year: string, name: string) {
+		const result = await run(() => api!.removeRawFile(year, name));
+		if (result) {
+			message = `Removed "${name}" from "${year}".`;
+			await openFiles(year);
 			await refresh();
 		}
 	}
@@ -52,7 +135,12 @@
 		if (result) {
 			activeYear = year;
 			taggingRows = result.rows;
-			message = `Extracted ${result.rows.length} report(s) for ${year} - fill in the tags below, then save.`;
+			failures = result.failures ?? [];
+			message =
+				`Extracted ${result.rows.length} report(s) for ${year}` +
+				(failures.length > 0
+					? ` - ${failures.length} file(s) could not be read and were skipped (see below).`
+					: ' - fill in the tags below, then save.');
 			await refresh();
 		}
 	}
@@ -67,7 +155,9 @@
 
 	async function saveTagging() {
 		if (!activeYear) return;
-		const result = await run(() => api!.saveTagging(activeYear!, taggingRows));
+		// Same Proxy-cloning issue as confirmImport() above - snapshot before IPC.
+		const rows = $state.snapshot(taggingRows);
+		const result = await run(() => api!.saveTagging(activeYear!, rows));
 		if (result) {
 			message = `Tags saved for ${activeYear}.`;
 			await refresh();
@@ -77,7 +167,12 @@
 	async function build(year: string) {
 		const result = await run(() => api!.buildYearlyCsv(year));
 		if (result) {
-			message = `Built and published ${result.rowCount} row(s) for ${year}. Reload the dashboard to see it.`;
+			failures = result.failures ?? [];
+			message =
+				`Built and published ${result.rowCount} row(s) for ${year}. Reload the dashboard to see it.` +
+				(failures.length > 0
+					? ` ${failures.length} file(s) could not be read and were skipped (see below).`
+					: '');
 			await refresh();
 		}
 	}
@@ -114,16 +209,16 @@
 		</p>
 	{:else}
 		<section class="panel">
-			<h2>Raw data folder</h2>
+			<h2>Add a year</h2>
 			<p>
-				{#if rawDataDir}
-					Currently: <code>{rawDataDir}</code>
-				{:else}
-					No folder chosen yet - pick the folder that contains one subfolder per year of
-					<code>.docx</code> reports (e.g. <code>2023/</code>, <code>2024/</code>).
-				{/if}
+				Create a folder inside the app for a year of reports, then add <code>.docx</code> files to
+				it. Files are always copied into the app's own storage - nothing is read from disk each
+				time, so the app always knows exactly what it has.
 			</p>
-			<button type="button" disabled={busy} onclick={chooseFolder}>Choose folder&hellip;</button>
+			<div class="new-year">
+				<input type="text" inputmode="numeric" maxlength="4" bind:value={newYear} placeholder="2024" />
+				<button type="button" disabled={busy} onclick={createYear}>Create folder</button>
+			</div>
 			<button type="button" disabled={busy} onclick={() => api?.openUserDataFolder()}>
 				Open app data folder
 			</button>
@@ -135,11 +230,25 @@
 		{#if message}
 			<p class="success">{message}</p>
 		{/if}
+		{#if failures.length > 0}
+			<div class="panel failures">
+				<h2>Files that couldn't be read</h2>
+				<p>
+					These files were skipped so the rest of the folder could still be processed. Fix or
+					remove them (see "Files&hellip;" above), then run extraction/build again.
+				</p>
+				<ul>
+					{#each failures as f (f.file)}
+						<li><strong>{f.file}</strong>: {f.error}</li>
+					{/each}
+				</ul>
+			</div>
+		{/if}
 
 		<section class="panel">
 			<h2>Years</h2>
 			{#if years.length === 0}
-				<p>No years found yet - choose a raw data folder above.</p>
+				<p>No years found yet - create one above.</p>
 			{:else}
 				<table class="years">
 					<thead>
@@ -160,13 +269,16 @@
 									{#if !y.hasTagging}
 										not started
 									{:else if y.pendingTags > 0}
-										{y.pendingTags} row(s) pending
+										{y.pendingTags} row(s) pending (published as "Unknown")
 									{:else}
 										complete
 									{/if}
 								</td>
 								<td>{y.published ? 'yes' : 'no'}</td>
 								<td class="actions">
+									<button type="button" disabled={busy} onclick={() => openFiles(y.year)}>
+										Files&hellip;
+									</button>
 									{#if y.docxCount === 0}
 										<button type="button" disabled={busy} onclick={() => demo(y.year)}>
 											Use demo data
@@ -179,11 +291,7 @@
 											<button type="button" disabled={busy} onclick={() => openTagging(y.year)}>
 												Edit tags
 											</button>
-											<button
-												type="button"
-												disabled={busy || y.pendingTags > 0}
-												onclick={() => build(y.year)}
-											>
+											<button type="button" disabled={busy} onclick={() => build(y.year)}>
 												Build &amp; publish
 											</button>
 										{/if}
@@ -195,6 +303,65 @@
 				</table>
 			{/if}
 		</section>
+
+		{#if filesYear}
+			<section class="panel">
+				<h2>Files in "{filesYear}"</h2>
+				<button type="button" class="close" disabled={busy} onclick={closeFiles}>Close</button>
+
+				{#if rawFiles.length === 0}
+					<p>No <code>.docx</code> files saved in this folder yet.</p>
+				{:else}
+					<table class="files">
+						<thead>
+							<tr>
+								<th>File</th>
+								<th>Size</th>
+								<th></th>
+							</tr>
+						</thead>
+						<tbody>
+							{#each rawFiles as f (f.name)}
+								<tr>
+									<td>{f.name}</td>
+									<td>{Math.round(f.size / 1024)} KB</td>
+									<td class="actions">
+										<button
+											type="button"
+											disabled={busy}
+											onclick={() => removeFile(filesYear!, f.name)}
+										>
+											Remove
+										</button>
+									</td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				{/if}
+
+				{#if pendingFiles.length > 0}
+					<p class="pending">
+						Found <strong>{pendingFiles.length}</strong> file(s) to save into
+						<strong>{filesYear}</strong>:
+					</p>
+					<ul class="file-list">
+						{#each pendingFiles as file (file)}
+							<li>{file}</li>
+						{/each}
+					</ul>
+					<button type="button" disabled={busy} onclick={confirmImport}>
+						Save {pendingFiles.length} file(s) into "{filesYear}"
+					</button>
+					<button type="button" disabled={busy} onclick={cancelPendingFiles}>Cancel</button>
+				{:else}
+					<button type="button" disabled={busy} onclick={chooseFiles}>Add files&hellip;</button>
+					<button type="button" disabled={busy} onclick={chooseFolderToImport}>
+						Scan a folder for files&hellip;
+					</button>
+				{/if}
+			</section>
+		{/if}
 
 		{#if activeYear && taggingRows.length > 0}
 			<section class="panel">
@@ -279,6 +446,10 @@
 	.success {
 		color: var(--color-teal);
 	}
+	.pending {
+		color: var(--color-muted);
+		font-size: 0.9rem;
+	}
 	button {
 		font-family: var(--font-body);
 		background: var(--color-ink);
@@ -311,5 +482,47 @@
 	}
 	.actions button {
 		margin-bottom: 0;
+	}
+	.new-year {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		margin-bottom: 1rem;
+	}
+	.new-year input {
+		font-family: var(--font-body);
+		font-size: 1rem;
+		width: 6rem;
+		padding: 0.4rem 0.6rem;
+		border: 1px solid var(--color-border);
+		border-radius: 4px;
+	}
+	.close {
+		float: right;
+	}
+	.file-list {
+		max-height: 8rem;
+		overflow-y: auto;
+		font-size: 0.85rem;
+		color: var(--color-muted);
+		margin: 0 0 1rem;
+		padding: 0.75rem 1rem;
+		background: var(--color-bg-alt);
+		border-radius: 4px;
+		word-break: break-all;
+	}
+	.failures {
+		border-color: var(--color-accent);
+	}
+	.failures h2 {
+		color: var(--color-accent);
+	}
+	.failures ul {
+		margin: 0;
+		padding-left: 1.25rem;
+	}
+	.failures li {
+		margin-bottom: 0.4rem;
+		word-break: break-word;
 	}
 </style>

@@ -1,8 +1,8 @@
 {
-  "name": "complete-wellbeing-desktop",
-  "version": "1.0.0",
+  "name": "wellnessco-report-analysis-desktop",
+  "version": "1.0.2",
   "private": true,
-  "description": "Standalone offline desktop app for the Complete Wellbeing ETL + dashboard",
+  "description": "Desktop app for The Wellbeing Co",
   "main": "electron/main.js",
   "author": {
     "name": "The Wellbeing Co",
@@ -27,7 +27,7 @@
   },
   "build": {
     "appId": "co.wellbeing.dataanalysis",
-    "productName": "Complete Wellbeing Reporting",
+    "productName": "The Wellbeing Co - Data Analysis",
     "directories": {
       "output": "dist"
     },
@@ -42,7 +42,7 @@
     "linux": {
       "target": "deb",
       "category": "Office",
-      "maintainer": "Wellbeing Co <support@wellbeing.co>"
+      "maintainer": "The Wellbeing Co <info@the-wellbeing-co.com>"
     },
     "mac": {
       "target": "dmg",
