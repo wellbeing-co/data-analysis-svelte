@@ -1,0 +1,145 @@
+:root {
+  --ink: #24211d;
+  --muted: #6f6a60;
+  --border: #dfd8ca;
+  --accent: #b5482f;
+  --bg: #faf6ef;
+  --bg-panel: #ffffff;
+  --pending: #c08a1e;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.5;
+}
+
+.topbar {
+  background: var(--ink);
+  padding: 0.9rem 1.5rem;
+}
+
+.brand {
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+main {
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+h1 { margin-top: 0; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+}
+
+th, td {
+  border-bottom: 1px solid var(--border);
+  padding: 0.6rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+  font-size: 0.92rem;
+}
+
+th {
+  background: var(--bg);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+
+.excerpt {
+  max-width: 24rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+select {
+  padding: 0.3rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: #fff;
+}
+
+.actions {
+  margin-top: 1.25rem;
+  display: flex;
+  gap: 0.75rem;
+}
+
+button, .button {
+  font: inherit;
+  padding: 0.55rem 1.1rem;
+  border-radius: 4px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+}
+
+button.secondary, .button.secondary {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--border);
+}
+
+.year-list {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.year-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 4px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.year-card.has-pending {
+  border-left-color: var(--pending);
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  background: var(--bg);
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+
+.badge.pending {
+  background: #fbeecb;
+  color: #7a5410;
+  border-color: var(--pending);
+}
+
+.diff-row { margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+.diff-row:last-child { border-bottom: none; }
+.diff-change { font-size: 0.9rem; }
+.diff-before { color: var(--muted); text-decoration: line-through; }
+.diff-after { color: var(--accent); font-weight: 600; }
+
+.hint { color: var(--muted); font-size: 0.9rem; }

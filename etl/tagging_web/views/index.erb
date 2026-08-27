@@ -1,0 +1,29 @@
+<h1>Years awaiting tagging</h1>
+<p class="hint">
+  Pick a year, fill in the tags from the excerpt, then submit for review.
+  Nothing is written to the real tagging file until it's reviewed and merged.
+</p>
+
+<% if @years.empty? %>
+  <p>No tagging files found yet. Run <code>bundle exec ruby jobs/extract_for_tagging.rb YEAR</code> first.</p>
+<% else %>
+  <ul class="year-list">
+    <% @years.each do |review| %>
+      <% todo_count = review.rows.count { |r| tag_columns.any? { |c| r[c] == blank_tag } } %>
+      <li class="year-card<%= review.pending? ? ' has-pending' : '' %>">
+        <div>
+          <strong><%= review.year %></strong>
+          <div class="hint"><%= review.rows.size %> report(s), <%= todo_count %> still untagged</div>
+        </div>
+        <div>
+          <% if review.pending? %>
+            <span class="badge pending">pending review</span>
+            <a class="button" href="/<%= review.year %>/review">Review</a>
+          <% else %>
+            <a class="button" href="/<%= review.year %>/edit">Open</a>
+          <% end %>
+        </div>
+      </li>
+    <% end %>
+  </ul>
+<% end %>

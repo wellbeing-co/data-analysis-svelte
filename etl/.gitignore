@@ -1,0 +1,15 @@
+# Local salt used to derive pseudonymous ids - must never be committed or shared.
+/config/salt.txt
+
+# Basic-auth credentials for the local tagging web tool - local secret, never shared via git.
+/config/tagging_web_credentials.txt
+
+# Tagging CSVs contain narrative excerpts from real reports pending manual review.
+/tagging/*.csv
+/tagging/pending/*.csv
+
+# Final per-year CSVs may contain real (anonymised) client data - keep local,
+# copy manually into app/static/data/ when ready to publish/demo.
+/output/*.csv
+
+.bundle/

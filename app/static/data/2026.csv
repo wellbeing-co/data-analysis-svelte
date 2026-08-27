@@ -1,0 +1,41 @@
+pseudonymous_id,year,gender,age,age_range,height_cm,weight_kg,bmi,body_fat_pct,waist_cm,waist_to_height_ratio,blood_pressure_systolic,blood_pressure_diastolic,blood_pressure_category,resting_pulse,total_cholesterol,hdl_cholesterol,hdl_cholesterol_category,non_hdl_cholesterol,non_hdl_cholesterol_category,non_fasted_glucose,hba1c,overall_healthy,nutritional_underfuelling,sleep_issue,stress_burnout,acupuncture_referral,mental_health_referral
+demo-2026-001,2026,Male,68,60-79,169,57,24.9,31.2,93,0.47,111,89,Amber,52,7.08,2.0,Optimal,5.08,High,7.7,6.8,N,N,N,Y,N,N
+demo-2026-002,2026,Female,38,20-39,155,72,28.8,37.0,106,0.61,120,93,Red,51,6.54,1.79,Optimal,4.75,Borderline High,7.8,4.9,N,N,N,Unknown,N,N
+demo-2026-003,2026,Female,48,40-59,192,63,31.0,21.6,87,0.46,105,79,Green,73,4.69,1.17,Low,3.52,Borderline High,8.3,4.9,N,N,N,N,N,Y
+demo-2026-004,2026,Female,47,40-59,156,85,22.8,14.1,80,0.42,146,92,Red,51,4.73,1.04,Low,3.69,Borderline High,6.7,6.9,N,N,N,N,N,N
+demo-2026-005,2026,Female,51,40-59,184,87,24.3,15.5,91,0.59,130,89,Amber,61,5.31,1.02,Low,4.29,Borderline High,5.9,5.2,N,N,Unknown,N,N,N
+demo-2026-006,2026,Male,67,60-79,157,63,22.1,16.5,109,0.63,125,72,Green,84,4.75,1.74,Optimal,3.01,Optimal,6.8,6.6,Y,N,Y,N,Y,N
+demo-2026-007,2026,Female,66,60-79,157,61,26.2,33.5,103,0.59,130,81,Amber,71,5.69,1.25,Low,4.44,Borderline High,5.2,5.0,N,N,N,Y,N,N
+demo-2026-008,2026,Male,30,20-39,170,66,25.8,20.6,105,0.49,113,92,Red,72,5.07,1.7,Optimal,3.37,Borderline High,6.3,5.8,N,N,Y,N,N,N
+demo-2026-009,2026,Female,23,20-39,159,89,29.1,28.7,93,0.48,138,92,Red,71,7.12,1.8,Optimal,5.32,High,6.7,6.4,N,N,N,N,Y,N
+demo-2026-010,2026,Female,61,60-79,155,72,31.9,18.5,88,0.46,141,70,Red,69,6.3,1.63,Optimal,4.67,Borderline High,4.9,5.0,N,N,Y,N,N,Y
+demo-2026-011,2026,Male,21,20-39,182,89,27.6,29.8,93,0.56,136,87,Amber,54,4.79,1.14,Average,3.65,Borderline High,7.7,6.4,N,N,Y,Y,N,N
+demo-2026-012,2026,Male,51,40-59,155,59,26.4,36.3,82,0.48,134,91,Red,53,3.8,0.89,Low,2.91,Optimal,6.0,5.2,N,N,N,N,N,Y
+demo-2026-013,2026,Female,30,20-39,194,97,22.5,32.8,105,0.62,140,83,Red,86,6.44,1.5,Average,4.94,High,4.9,4.8,N,N,Y,N,N,N
+demo-2026-014,2026,Female,62,60-79,166,62,23.0,33.6,78,0.52,120,94,Red,71,5.68,1.81,Optimal,3.87,Borderline High,6.9,5.7,N,N,Y,Y,N,N
+demo-2026-015,2026,Female,58,40-59,172,59,29.9,31.5,90,0.52,143,89,Red,92,4.38,1.75,Optimal,2.63,Optimal,7.7,6.8,N,N,Y,Y,N,N
+demo-2026-016,2026,Male,36,20-39,160,91,20.2,33.1,88,0.44,146,72,Red,75,4.95,0.9,Low,4.05,Borderline High,6.8,5.6,N,N,N,N,N,N
+demo-2026-017,2026,Male,33,20-39,155,89,30.1,28.7,80,0.48,119,74,Green,79,6.63,1.73,Optimal,4.9,Borderline High,6.0,5.3,Y,N,Y,N,N,N
+demo-2026-018,2026,Female,39,20-39,155,71,23.9,33.3,97,0.5,127,72,Green,72,6.59,1.26,Low,5.33,High,7.0,6.0,N,N,N,Y,Y,N
+demo-2026-019,2026,Male,73,60-79,192,76,28.3,23.5,80,0.54,129,85,Amber,67,5.27,1.67,Optimal,3.6,Borderline High,5.1,4.9,N,N,Y,N,N,N
+demo-2026-020,2026,Male,19,Under 20,179,69,21.6,17.4,106,0.43,111,84,Green,78,5.93,1.35,Average,4.58,Borderline High,8.2,5.3,Y,N,N,Y,N,N
+demo-2026-021,2026,Female,66,60-79,157,98,20.9,12.8,102,0.44,130,83,Amber,65,5.17,1.33,Average,3.84,Borderline High,6.4,5.8,N,N,Y,N,N,N
+demo-2026-022,2026,Female,32,20-39,169,89,31.2,35.1,89,0.63,145,65,Red,74,7.03,1.63,Optimal,5.4,High,4.8,4.9,N,N,Y,N,N,N
+demo-2026-023,2026,Male,44,40-59,172,56,32.0,15.2,88,0.63,128,93,Red,79,5.17,1.15,Average,4.02,Borderline High,7.0,5.8,N,N,N,N,N,N
+demo-2026-024,2026,Female,48,40-59,165,89,30.5,30.7,109,0.64,110,92,Red,76,4.68,1.44,Average,3.24,Optimal,7.3,6.2,N,N,N,N,N,N
+demo-2026-025,2026,Female,27,20-39,158,56,22.1,33.7,97,0.48,107,67,Green,92,6.29,1.46,Average,4.83,Borderline High,4.7,5.8,Y,Y,N,Unknown,N,N
+demo-2026-026,2026,Male,49,40-59,157,71,23.8,28.5,91,0.49,133,87,Amber,55,4.11,1.21,Average,2.9,Optimal,4.5,6.0,N,N,Y,N,N,N
+demo-2026-027,2026,Female,20,20-39,192,62,26.7,30.7,96,0.6,135,66,Amber,90,7.19,1.87,Optimal,5.32,High,5.1,5.2,N,N,Y,N,Y,N
+demo-2026-028,2026,Male,33,20-39,189,100,20.3,35.6,93,0.63,146,95,Red,75,5.34,0.99,Low,4.35,Borderline High,5.1,5.3,N,N,Y,Y,N,N
+demo-2026-029,2026,Male,27,20-39,161,66,24.6,18.9,106,0.51,120,71,Green,90,4.56,1.43,Average,3.13,Optimal,6.6,4.8,Y,Y,Y,Y,N,N
+demo-2026-030,2026,Male,25,20-39,157,55,26.8,25.6,91,0.57,137,78,Amber,69,4.66,1.32,Average,3.34,Optimal,8.2,7.0,N,N,N,Y,N,N
+demo-2026-031,2026,Male,41,40-59,161,95,30.6,20.4,88,0.64,115,76,Green,52,6.04,1.14,Average,4.9,Borderline High,6.7,6.7,Y,N,Y,Unknown,N,N
+demo-2026-032,2026,Female,46,40-59,171,63,30.6,15.2,103,0.6,126,70,Green,95,5.97,1.43,Average,4.54,Borderline High,7.5,5.4,Y,N,N,Y,N,N
+demo-2026-033,2026,Female,43,40-59,179,99,26.8,28.8,99,0.55,141,77,Red,53,4.15,1.4,Average,2.75,Optimal,7.3,6.6,N,N,N,Y,N,N
+demo-2026-034,2026,Male,33,20-39,185,73,20.0,32.0,82,0.53,139,66,Amber,93,5.51,1.85,Optimal,3.66,Borderline High,6.4,6.0,N,N,Y,Y,Y,N
+demo-2026-035,2026,Male,77,60-79,187,94,26.1,22.2,72,0.43,118,85,Amber,79,5.26,1.44,Average,3.82,Borderline High,6.0,5.0,N,N,N,N,N,N
+demo-2026-036,2026,Male,44,40-59,193,62,20.5,32.0,98,0.52,115,91,Red,54,5.84,1.87,Optimal,3.97,Borderline High,6.9,5.2,N,N,Y,N,N,N
+demo-2026-037,2026,Female,49,40-59,158,95,29.8,25.1,106,0.49,114,76,Green,79,6.17,1.62,Optimal,4.55,Borderline High,5.6,6.1,Y,N,Y,N,N,N
+demo-2026-038,2026,Female,27,20-39,187,80,20.9,13.7,81,0.55,143,77,Red,53,3.72,0.9,Low,2.82,Optimal,8.1,5.4,N,N,N,N,Y,N
+demo-2026-039,2026,Female,50,40-59,166,91,27.3,27.5,97,0.44,128,66,Green,80,4.48,1.6,Optimal,2.88,Optimal,7.6,6.7,Y,N,N,N,N,N
+demo-2026-040,2026,Female,74,60-79,169,75,28.6,33.9,73,0.41,148,72,Red,59,4.81,1.89,Optimal,2.92,Optimal,7.0,4.9,N,N,Unknown,N,Y,Y

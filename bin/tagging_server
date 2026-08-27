@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# Boots the local tagging web tool (etl/tagging_web) so a non-technical
+# reviewer on another machine on the same network can fill in tags for a
+# year via their browser, instead of opening a spreadsheet by hand.
+#
+# The browser session is protected with HTTP Basic Auth (credentials
+# generated on first run, see etl/config/tagging_web_credentials.txt - never
+# committed to git). Edits are saved as a proposal and must be reviewed and
+# merged (from the same web UI) before jobs/build_yearly_csv.rb will see them
+# - the same propose -> review -> merge shape as a GitHub pull request.
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ETL_DIR="$ROOT_DIR/etl"
+PORT="${TAGGING_SERVER_PORT:-4567}"
+
+if [ -t 1 ]; then
+  BOLD=$(tput bold) DIM=$(tput dim) RESET=$(tput sgr0)
+  GREEN=$(tput setaf 2) CYAN=$(tput setaf 6)
+else
+  BOLD="" DIM="" RESET="" GREEN="" CYAN=""
+fi
+
+header() { echo; echo "${BOLD}${CYAN}== $* ==${RESET}"; }
+ok()     { echo "${GREEN}✓ $*${RESET}"; }
+info()   { echo "${DIM}$*${RESET}"; }
+
+if ! command -v bundle >/dev/null 2>&1; then
+  echo "bundle not found on PATH - install Ruby/Bundler first." >&2
+  exit 1
+fi
+
+header "Tagging web tool setup"
+if (cd "$ETL_DIR" && bundle check >/dev/null 2>&1); then
+  ok "Ruby gems already installed"
+else
+  info "Installing Ruby gems (bundle install)..."
+  (cd "$ETL_DIR" && bundle install)
+fi
+
+# Generate (or reuse) the basic-auth credentials up front so we can print
+# them below, without booting the server first.
+CREDENTIALS_FILE="$ETL_DIR/config/tagging_web_credentials.txt"
+(cd "$ETL_DIR" && bundle exec ruby -e 'require "./lib/etl/tagging_web_credentials"; Etl::TaggingWebCredentials.load_or_create') 
+CREDENTIALS="$(cat "$CREDENTIALS_FILE")"
+USERNAME="${CREDENTIALS%%:*}"
+PASSWORD="${CREDENTIALS#*:}"
+
+LOCAL_IP="$(ipconfig getifaddr en0 2>/dev/null || hostname -I 2>/dev/null | awk '{print $1}' || echo "127.0.0.1")"
+
+header "Starting the tagging web tool"
+echo "Share these details with the person tagging reports on another machine:"
+echo
+echo "  ${BOLD}URL:${RESET}      http://${LOCAL_IP}:${PORT}"
+echo "  ${BOLD}Username:${RESET} ${USERNAME}"
+echo "  ${BOLD}Password:${RESET} ${PASSWORD}"
+echo
+info "(Both machines must be on the same local network. Credentials are stored"
+info " in etl/config/tagging_web_credentials.txt - delete it to generate new ones.)"
+info "Edits are saved as a proposal - review the diff and merge from"
+info "the same web UI before running jobs/build_yearly_csv.rb for that year."
+echo
+info "Press Ctrl+C to stop the server."
+echo
+
+cd "$ETL_DIR/tagging_web"
+exec bundle exec puma -b "tcp://0.0.0.0:${PORT}" config.ru

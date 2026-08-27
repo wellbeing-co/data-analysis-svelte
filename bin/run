@@ -1,0 +1,264 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ETL_DIR="$ROOT_DIR/etl"
+APP_DIR="$ROOT_DIR/app"
+APP_DATA_DIR="$APP_DIR/static/data"
+YEARS_JSON="$APP_DATA_DIR/years.json"
+
+if [ -t 1 ]; then
+  BOLD=$(tput bold) DIM=$(tput dim) RESET=$(tput sgr0)
+  GREEN=$(tput setaf 2) YELLOW=$(tput setaf 3) RED=$(tput setaf 1) CYAN=$(tput setaf 6)
+else
+  BOLD="" DIM="" RESET="" GREEN="" YELLOW="" RED="" CYAN=""
+fi
+
+header() {
+  echo
+  echo "${BOLD}${CYAN}== $* ==${RESET}"
+}
+
+info()  { echo "${DIM}$*${RESET}"; }
+ok()    { echo "${GREEN}✓ $*${RESET}"; }
+warn()  { echo "${YELLOW}! $*${RESET}"; }
+fail()  { echo "${RED}✗ $*${RESET}"; }
+
+ask_yes_no() {
+  local prompt="$1" default="${2:-y}" ans
+  local hint="y/N"
+  [ "$default" = "y" ] && hint="Y/n"
+  read -rp "$prompt [$hint] " ans
+  ans="${ans:-$default}"
+  [[ "$ans" =~ ^[Yy] ]]
+}
+
+press_enter() {
+  read -rp "${DIM}Press Enter to continue (or type 'skip' to skip this year)...${RESET} " REPLY_KEY
+  [ "${REPLY_KEY:-}" = "skip" ]
+}
+
+# ---------------------------------------------------------------------------
+# Pre-flight checks
+# ---------------------------------------------------------------------------
+
+check_dependencies() {
+  header "Checking dependencies"
+  local missing=0
+  for cmd in ruby bundle node npm; do
+    if command -v "$cmd" >/dev/null 2>&1; then
+      ok "$cmd found ($(command -v "$cmd"))"
+    else
+      fail "$cmd not found on PATH"
+      missing=1
+    fi
+  done
+  if [ "$missing" -eq 1 ]; then
+    fail "Install the missing tool(s) above, then re-run bin/run."
+    exit 1
+  fi
+}
+
+ensure_etl_deps() {
+  header "ETL setup (etl/)"
+  if (cd "$ETL_DIR" && bundle check >/dev/null 2>&1); then
+    ok "Ruby gems already installed"
+  else
+    info "Installing Ruby gems (bundle install)..."
+    (cd "$ETL_DIR" && bundle install)
+  fi
+}
+
+ensure_app_deps() {
+  header "Dashboard setup (app/)"
+  if [ -d "$APP_DIR/node_modules" ]; then
+    ok "npm packages already installed"
+  else
+    info "Installing npm packages (npm install)..."
+    (cd "$APP_DIR" && npm install)
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# Year discovery
+# ---------------------------------------------------------------------------
+
+discover_years() {
+  find "$ROOT_DIR/raw-data" -maxdepth 1 -type d -regex '.*/[0-9][0-9][0-9][0-9]' -printf '%f\n' | sort
+}
+
+tagging_path() { echo "$ETL_DIR/tagging/${1}_tagging.csv"; }
+output_path()  { echo "$ETL_DIR/output/${1}.csv"; }
+raw_year_path() { echo "$ROOT_DIR/raw-data/${1}"; }
+
+pending_tag_count() {
+  local file="$1"
+  [ -f "$file" ] || { echo -1; return; }
+  grep -c 'TODO(Y/N)' "$file" || true
+}
+
+has_docx_reports() {
+  local year_folder="$1"
+  find "$year_folder" -maxdepth 1 -iname '*.docx' ! -iname '~$*' 2>/dev/null | grep -q .
+}
+
+# ---------------------------------------------------------------------------
+# Pipeline stages for a single year
+# ---------------------------------------------------------------------------
+
+stage_extract() {
+  local year="$1"
+  header "Year $year - Stage 1: extract report data for tagging"
+  (cd "$ETL_DIR" && bundle exec ruby jobs/extract_for_tagging.rb "$year")
+}
+
+stage_demo() {
+  local year="$1"
+  header "Year $year - no reports found, using demo data instead"
+  warn "raw-data/$year has no .docx reports in it yet."
+  info "Generating synthetic demo data so the dashboard has something to show for $year."
+  mkdir -p "$APP_DATA_DIR"
+  (cd "$ETL_DIR" && bundle exec ruby bin/generate_demo_data.rb "$year") > "$APP_DATA_DIR/${year}.csv"
+  ok "Generated demo data -> app/static/data/${year}.csv"
+  publish_years_json "$year"
+  info "Drop real .docx reports into raw-data/$year/ and re-run bin/run to replace this with real data."
+}
+
+stage_tagging_gate() {
+  local year="$1" tfile
+  tfile="$(tagging_path "$year")"
+
+  while true; do
+    local pending
+    pending="$(pending_tag_count "$tfile")"
+
+    if [ "$pending" -eq 0 ]; then
+      ok "Tagging complete for $year - every row has Y/N filled in."
+      return 0
+    fi
+
+    warn "$pending row(s) in $tfile still need manual tagging."
+    info "Open it in a spreadsheet, fill in sleep_issue,"
+    info "stress_burnout, acupuncture_referral and mental_health_referral"
+    info "(using the personal_report_excerpt column as context), then save."
+    info "Handing this off to someone else? Run 'bin/tagging_server' instead - it"
+    info "lets them tag reports from a browser on another machine, and shows you"
+    info "a review/merge step (like a pull request) before it touches this file."
+    if press_enter; then
+      warn "Skipping year $year."
+      return 1
+    fi
+  done
+}
+
+stage_build() {
+  local year="$1"
+  header "Year $year - Stage 2: build the final anonymised CSV"
+  (cd "$ETL_DIR" && bundle exec ruby jobs/build_yearly_csv.rb "$year")
+}
+
+publish_years_json() {
+  local year="$1"
+  local years_now
+  if [ -f "$YEARS_JSON" ]; then
+    years_now="$(jq -c --arg y "$year" '(. + [$y]) | unique | sort' "$YEARS_JSON")"
+  else
+    years_now="$(jq -nc --arg y "$year" '[$y]')"
+  fi
+  echo "$years_now" > "$YEARS_JSON"
+  ok "app/static/data/years.json now lists: $years_now"
+}
+
+stage_publish() {
+  local year="$1"
+  header "Year $year - Publish to dashboard"
+  mkdir -p "$APP_DATA_DIR"
+  cp "$(output_path "$year")" "$APP_DATA_DIR/${year}.csv"
+  ok "Copied etl/output/${year}.csv -> app/static/data/${year}.csv"
+  publish_years_json "$year"
+}
+
+process_year() {
+  local year="$1"
+
+  if ! has_docx_reports "$(raw_year_path "$year")"; then
+    stage_demo "$year"
+    return 0
+  fi
+
+  stage_extract "$year"
+  if ! stage_tagging_gate "$year"; then
+    return 1
+  fi
+  stage_build "$year"
+  stage_publish "$year"
+  ok "Year $year is fully processed and published."
+}
+
+# ---------------------------------------------------------------------------
+# Launch the dashboard
+# ---------------------------------------------------------------------------
+
+launch_app() {
+  header "Launching the dashboard"
+  if ask_yes_no "Start in dev mode? (choose no for a production preview build)" y; then
+    info "Starting SvelteKit dev server - press Ctrl+C to stop it."
+    (cd "$APP_DIR" && exec npm run dev -- --open)
+  else
+    info "Building for production..."
+    (cd "$APP_DIR" && npm run build)
+    info "Starting preview server - press Ctrl+C to stop it."
+    (cd "$APP_DIR" && exec npm run preview -- --open)
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+main() {
+  echo "${BOLD}Complete Wellbeing - ETL & dashboard walkthrough${RESET}"
+  echo "${DIM}docx reports -> tagging -> per-year CSV -> dashboard${RESET}"
+
+  check_dependencies
+  ensure_etl_deps
+  ensure_app_deps
+
+  local years=()
+  while IFS= read -r y; do years+=("$y"); done < <(discover_years)
+
+  if [ ${#years[@]} -eq 0 ]; then
+    fail "No year folders (e.g. raw-data/2023/) found."
+    exit 1
+  fi
+
+  header "Found year folder(s): ${years[*]}"
+  local processed=()
+  for year in "${years[@]}"; do
+    local prompt="Process year $year now?"
+    if ! has_docx_reports "$(raw_year_path "$year")"; then
+      prompt="raw-data/$year is empty - generate demo data for $year now?"
+    fi
+    if ask_yes_no "$prompt" y; then
+      if process_year "$year"; then
+        processed+=("$year")
+      fi
+    else
+      info "Skipping year $year for now."
+    fi
+  done
+
+  if [ ${#processed[@]} -eq 0 ]; then
+    warn "No years were processed - the dashboard will show whatever data is already published (or the built-in demo data)."
+  else
+    ok "Processed and published: ${processed[*]}"
+  fi
+
+  if ask_yes_no "Boot the dashboard now?" y; then
+    launch_app
+  else
+    info "You can boot it later with: (cd app && npm run dev -- --open)"
+  fi
+}
+
+main "$@"

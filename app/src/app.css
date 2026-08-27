@@ -1,0 +1,61 @@
+:root {
+	--color-bg: #faf6ef;
+	--color-bg-panel: #ffffff;
+	--color-bg-alt: #f1eadd;
+	--color-ink: #24211d;
+	--color-muted: #6f6a60;
+	--color-border: #e5dccb;
+	--color-accent: #b5482f;
+	--color-accent-soft: #e3b7a8;
+	--color-teal: #2f6d63;
+	--color-teal-soft: #bcd9d2;
+	--color-gold: #c08a1e;
+
+	--font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+	--font-body: 'Source Sans 3', system-ui, -apple-system, sans-serif;
+
+	--content-width: 46rem;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	margin: 0;
+	padding: 0;
+}
+
+body {
+	background: var(--color-bg);
+	color: var(--color-ink);
+	font-family: var(--font-body);
+	line-height: 1.6;
+	-webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4 {
+	font-family: var(--font-display);
+	font-weight: 600;
+	line-height: 1.15;
+	margin: 0;
+}
+
+p {
+	margin: 0 0 1em;
+}
+
+a {
+	color: var(--color-accent);
+}
+
+code {
+	font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace;
+	background: var(--color-bg-alt);
+	padding: 0.15em 0.35em;
+	border-radius: 4px;
+}

@@ -1,0 +1,45 @@
+<h1>Tag reports - <%= @year %></h1>
+<p class="hint">
+  For each report, read the excerpt and choose Y/N (or Unknown if it's not mentioned)
+  for each column. Anything left as "Leave as-is" keeps its current value.
+</p>
+
+<form method="post" action="/<%= @year %>/edit">
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Gender / age</th>
+        <th>Excerpt</th>
+        <% tag_columns.each do |column| %>
+          <th><%= column.tr("_", " ") %></th>
+        <% end %>
+      </tr>
+    </thead>
+    <tbody>
+      <% @rows.each do |row| %>
+        <% id = row["pseudonymous_id"] %>
+        <tr>
+          <td><code><%= id %></code></td>
+          <td><%= row["gender"] %>, <%= row["age"] %></td>
+          <td class="excerpt"><%= row["personal_report_excerpt"] %></td>
+          <% tag_columns.each do |column| %>
+            <td>
+              <select name="tags[<%= id %>][<%= column %>]">
+                <option value="">Leave as-is (<%= row[column] %>)</option>
+                <option value="Y">Y</option>
+                <option value="N">N</option>
+                <option value="Unknown">Unknown</option>
+              </select>
+            </td>
+          <% end %>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+
+  <div class="actions">
+    <button type="submit">Submit for review</button>
+    <a class="button secondary" href="/">Cancel</a>
+  </div>
+</form>

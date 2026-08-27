@@ -1,0 +1,36 @@
+<h1>Review changes - <%= @year %></h1>
+
+<% if @diff.empty? %>
+  <p>No pending proposal for <%= @year %> (or nothing changed).</p>
+  <a class="button" href="/<%= @year %>/edit">Back to tagging</a>
+<% else %>
+  <p class="hint">
+    A reviewer proposed the following changes. Nothing has been written to
+    <code>etl/tagging/<%= @year %>_tagging.csv</code> yet - merge to apply them,
+    or discard to throw the proposal away and go back to editing.
+  </p>
+
+  <% @diff.each do |entry| %>
+    <div class="diff-row">
+      <strong><code><%= entry[:pseudonymous_id] %></code></strong>
+      <div class="excerpt"><%= entry[:excerpt] %></div>
+      <% entry[:changes].each do |change| %>
+        <div class="diff-change">
+          <%= change[:column].tr("_", " ") %>:
+          <span class="diff-before"><%= change[:before] %></span>
+          &rarr;
+          <span class="diff-after"><%= change[:after] %></span>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+
+  <div class="actions">
+    <form method="post" action="/<%= @year %>/merge">
+      <button type="submit">Merge into tagging file</button>
+    </form>
+    <form method="post" action="/<%= @year %>/discard">
+      <button type="submit" class="secondary">Discard proposal</button>
+    </form>
+  </div>
+<% end %>
