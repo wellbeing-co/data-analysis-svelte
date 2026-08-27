@@ -3,15 +3,15 @@
 Anonymised, aggregated reporting on "Complete Wellbeing Health Assessment"
 reports (`.docx`), grouped by year.
 
-The project has three parts:
+The project has multiple components:
 
 ```
-raw-data/2023/        Source .docx reports for 2023 (one folder per year)
+raw-data/*/           Source .docx reports for 2023 (one folder per year)
 etl/                  Ruby/Kiba ETL: docx -> per-year anonymised CSV
 app/                  SvelteKit dashboard that reads the per-year CSVs
 bin/run               Guided script that walks through the whole thing
 bin/tagging_server    Hands step 2 off to someone else over the browser
-.github/workflows/    CI: anonymisation certification + security scanning
+.github/workflows/    CI and security scanning
 ```
 
 ## Quick start
@@ -24,19 +24,19 @@ This single script takes you through the whole pipeline end to end: it
 checks/installs dependencies (Ruby gems, npm packages), runs the extraction
 for each detected year folder, pauses and tells you exactly which file to
 open and fill in when manual tagging is needed, builds the final CSV,
-publishes it into the dashboard's data folder, and finally offers to boot
+publishes it into the dashboard's data folder, then finally offers to boot
 the dashboard (`npm run dev` or a production preview). It's safe to re-run
 any time - already-completed steps are skipped or simply re-confirmed.
 
 If a year folder (e.g. `raw-data/2024/`) doesn't have any `.docx` reports in
-it yet, `bin/run` generates synthetic demo data for that year instead, so
+it yet, `bin/run` generates demo data for that year instead, so
 the dashboard always has something to show. Drop real reports in and
 re-run to replace it.
 
 ## How it works
 
 `bin/run` walks through all of the steps below automatically (pausing for
-step 2, since that one needs a human):
+step 2, since that needs additional input from another person):
 
 ```
 docx reports (raw-data/<year>/)
@@ -56,15 +56,15 @@ docx reports (raw-data/<year>/)
  4. copy etl/output/<year>.csv and update years.json       (app/static/data/)
         │
         ▼
-   npm run dev (app/) -> dashboard answering the 7 reporting questions
+   npm run dev (app/) -> dashboard answering the main reporting questions
 ```
 
 See `etl/README.md` and `app/README.md` for details on each part.
 
 ## Handing off tagging to someone else
 
-Step 2 above is the one step that needs a human to actually read each
-report's excerpt - and that person doesn't have to be technical, or even on
+Step 2 above is the one step that needs someone to actually read each
+report's excerpt, and that person doesn't have to be technical, or even on
 this machine.
 
 ```
@@ -78,7 +78,7 @@ never written straight into `etl/tagging/<year>_tagging.csv`. Reviewing that
 proposal (a plain before/after diff) and clicking "Merge" - from the same
 web UI, on either machine - is what actually applies it, so nothing reaches
 the file stage 2 reads until someone has looked at the diff. See
-`etl/tagging_web/` for the implementation.
+`etl/tagging_web/` for implementation.
 
 ## Continuous integration
 
@@ -91,13 +91,12 @@ the file stage 2 reads until someone has looked at the diff. See
 | CodeQL | GitHub's static analysis for both the Ruby ETL/tagging tool and the Svelte/TypeScript app. |
 | Svelte checks, tests & build | `svelte-check`, the Vitest unit tests (`app/src/lib/stats.test.ts`), and a production build. |
 
-All four are intended to be required status checks on the default branch,
-so identifying data or a vulnerable dependency can never be merged.
+All four are intended to be required status checks on the default branch.
 
 ## The dashboard
 
-The app reads like a short story for each year, not an admin panel: a
-headline, a plain-English narrative for each finding, and a chapter at the
+The app reads like a short story for each year: a
+headline, a plain-English narrative for each finding and a chapter at the
 end that compares wellbeing signals and referrals across every year of data
 available, so trends are easy to spot.
 
