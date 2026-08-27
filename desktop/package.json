@@ -4,6 +4,11 @@
   "private": true,
   "description": "Standalone offline desktop app for the Complete Wellbeing ETL + dashboard",
   "main": "electron/main.js",
+  "author": {
+    "name": "The Wellbeing Co",
+    "email": "info@the-wellbeing-co.com"
+  },
+  "homepage": "https://the-wellbeing-co.com",
   "scripts": {
     "start": "electron .",
     "test": "node --test",
@@ -36,7 +41,8 @@
     ],
     "linux": {
       "target": "deb",
-      "category": "Office"
+      "category": "Office",
+      "maintainer": "Wellbeing Co <support@wellbeing.co>"
     },
     "mac": {
       "target": "dmg",
