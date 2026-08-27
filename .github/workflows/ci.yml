@@ -88,6 +88,7 @@ jobs:
       - uses: github/codeql-action/analyze@v3
         with:
           category: "/language:${{ matrix.language }}"
+          upload: false
 
   svelte-tests:
     name: Svelte checks, tests & build
