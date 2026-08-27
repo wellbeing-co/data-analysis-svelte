@@ -37,6 +37,7 @@ unknown_rate = 0.12
 def yes_no_unknown_for(rate, unknown_rate)
   roll = rand
   return "Unknown" if roll < unknown_rate
+
   roll -= unknown_rate
   roll < rate ? "Y" : "N"
 end
@@ -46,8 +47,8 @@ rows = 40.times.map do |i|
   age = rand(19..78)
   systolic = rand(105..150)
   diastolic = rand(65..95)
-  hdl = (0.8 + rand * 1.2).round(2)
-  non_hdl = (2.5 + rand * 3.0).round(2)
+  hdl = (0.8 + (rand * 1.2)).round(2)
+  non_hdl = (2.5 + (rand * 3.0)).round(2)
   total_cholesterol = (hdl + non_hdl).round(2)
 
   bp_category = Etl::Derivations.blood_pressure_category(systolic, diastolic)
@@ -56,17 +57,17 @@ rows = 40.times.map do |i|
   overall_healthy = Etl::Derivations.overall_healthy?(bp_category, non_hdl_category, hdl_category)
 
   {
-    "pseudonymous_id" => format("demo-%s-%03d", year, i + 1),
+    "pseudonymous_id" => format("demo-%<year>s-%<index>03d", year: year, index: i + 1),
     "year" => year,
     "gender" => gender,
     "age" => age,
     "age_range" => Etl::Derivations.age_range(age),
     "height_cm" => rand(155..195),
     "weight_kg" => rand(55..100),
-    "bmi" => (20 + rand * 12).round(1),
-    "body_fat_pct" => (12 + rand * 25).round(1),
+    "bmi" => (20 + (rand * 12)).round(1),
+    "body_fat_pct" => (12 + (rand * 25)).round(1),
     "waist_cm" => rand(70..110),
-    "waist_to_height_ratio" => (0.4 + rand * 0.25).round(2),
+    "waist_to_height_ratio" => (0.4 + (rand * 0.25)).round(2),
     "blood_pressure_systolic" => systolic,
     "blood_pressure_diastolic" => diastolic,
     "blood_pressure_category" => bp_category,
@@ -76,14 +77,14 @@ rows = 40.times.map do |i|
     "hdl_cholesterol_category" => hdl_category,
     "non_hdl_cholesterol" => non_hdl,
     "non_hdl_cholesterol_category" => non_hdl_category,
-    "non_fasted_glucose" => (4.5 + rand * 4).round(1),
-    "hba1c" => (4.5 + rand * 2.5).round(1),
+    "non_fasted_glucose" => (4.5 + (rand * 4)).round(1),
+    "hba1c" => (4.5 + (rand * 2.5)).round(1),
     "overall_healthy" => overall_healthy ? "Y" : "N",
-    "nutritional_underfuelling" => (overall_healthy && rand < 0.35) ? "Y" : "N",
+    "nutritional_underfuelling" => overall_healthy && rand < 0.35 ? "Y" : "N",
     "sleep_issue" => yes_no_unknown_for(sleep_rate, unknown_rate),
     "stress_burnout" => yes_no_unknown_for(stress_rate, unknown_rate),
-    "acupuncture_referral" => (rand < acupuncture_rate) ? "Y" : "N",
-    "mental_health_referral" => (rand < mental_health_rate) ? "Y" : "N",
+    "acupuncture_referral" => rand < acupuncture_rate ? "Y" : "N",
+    "mental_health_referral" => rand < mental_health_rate ? "Y" : "N"
   }
 end
 

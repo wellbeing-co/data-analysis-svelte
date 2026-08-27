@@ -88,10 +88,11 @@ the file stage 2 reads until someone has looked at the diff. See
 | --- | --- |
 | Anonymisation check | Fails the build if any published CSV contains a re-identifying column (name, DOB, email, etc.) or is missing `pseudonymous_id` - see `etl/bin/check_anonymized.rb`. |
 | Ruby security scan | [Brakeman](https://brakeman.org/) (run with `--force`, since `etl/` is Sinatra/Kiba, not Rails) and [bundler-audit](https://github.com/rubysec/bundler-audit) against known gem CVEs. |
+| Ruby lint | [RuboCop](https://rubocop.org/) over `etl/` (see `etl/.rubocop.yml`), run via `bundle exec rubocop` or `bundle exec rake` (which runs it alongside the test suite). |
 | CodeQL | GitHub's static analysis for both the Ruby ETL/tagging tool and the Svelte/TypeScript app. |
 | Svelte checks, tests & build | `svelte-check`, the Vitest unit tests (`app/src/lib/stats.test.ts`), and a production build. |
 
-All four are intended to be required status checks on the default branch.
+All are intended to be required status checks on the default branch.
 
 ## The dashboard
 

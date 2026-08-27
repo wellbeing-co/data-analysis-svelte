@@ -12,6 +12,16 @@ cd etl
 bundle install
 ```
 
+## Tests & linting
+
+```
+bundle exec rake        # runs the minitest suite, then RuboCop
+bundle exec rubocop     # RuboCop only (style/lint over etl/, see .rubocop.yml)
+bundle exec rubocop -a  # auto-correct safe offences
+```
+
+RuboCop also runs in CI on every push/PR - see `../.github/workflows/ci.yml`.
+
 ## Pipeline
 
 The pipeline is two stages because the source reports have no structured
@@ -71,7 +81,7 @@ bundle exec ruby jobs/build_yearly_csv.rb 2023
 Reads the `.docx` reports again, merges in the tags, and writes
 `etl/output/2023.csv` - the anonymised, per-year CSV consumed by the Svelte
 app. Rows still containing a `TODO(Y/N)` placeholder are recorded as
-`Unknown` rather than silently dropped.
+`Unknown`.
 
 Copy the resulting file into `../app/static/data/2023.csv` (and add `2023`
 to `../app/static/data/years.json`) to publish it to the dashboard.
@@ -95,21 +105,20 @@ it either; refine the keyword list as real report language is reviewed.
 
 No name or date of birth is ever written to the output CSV. Each report
 gets a `pseudonymous_id`, a SHA-256 hash of the year, filename and a local
-salt (`etl/config/salt.txt`, generated on first run (git-ignored - never
-commit). The same file always produces the same id (so stage 1/2 rows match
+salt (`etl/config/salt.txt`, generated on first run (git-ignore). The same file always produces the same id (so stage 1/2 rows match
 up), but the id cannot be reversed back to a filename or name.
 
-This is enforced in CI, not just by convention: `bin/check_anonymized.rb`
-scans every published CSV (`../app/static/data/*.csv`, `output/*.csv`) for
-forbidden columns (name, DOB, email, phone, address, ...) and for the
-presence of `pseudonymous_id`, and fails the build if either check fails -
-see `../.github/workflows/ci.yml`.
+This is enforced in CI. `bin/check_anonymized.rb` scans every published
+CSV (`../app/static/data/*.csv`, `output/*.csv`) for forbidden columns
+(name, DOB, email, phone, address, ...) and for the presence of
+`pseudonymous_id`, and fails the build if either check fails. See
+`../.github/workflows/ci.yml`.
 
 ## Demo data
 
 `bin/generate_demo_data.rb YEAR` writes 40 rows of made-up demo data for a
 given year to stdout, with a few rates (sleep issues, stress/burnout,
 referrals) drifting slightly by year so the dashboard's trends chapter has
-something realistic to show. `../bin/run` (at the project root) runs this
+something realistic to show. `../bin/run` (project root) runs this
 automatically for any `raw-data/<year>` folder that has no `.docx` reports
 in it yet, publishing the result straight to `../app/static/data/<year>.csv`.

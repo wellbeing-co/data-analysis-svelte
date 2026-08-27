@@ -64,7 +64,7 @@ module Etl
       text = +""
       p_node.xpath(".//w:t | .//w:tab | .//w:br", "w" => W_NS).each do |node|
         case node.name
-        when "t"  then text << node.text
+        when "t" then text << node.text
         when "tab" then text << "\t"
         when "br" then text << "\n"
         end

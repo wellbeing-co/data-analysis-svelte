@@ -45,7 +45,7 @@ job = Kiba.parse do
       "stress_burnout" => existing&.fetch("stress_burnout", nil) || Etl::TaggingStore.blank_tag,
       "acupuncture_referral" => existing&.fetch("acupuncture_referral", nil) || Etl::TaggingStore.blank_tag,
       "mental_health_referral" => existing&.fetch("mental_health_referral", nil) || Etl::TaggingStore.blank_tag,
-      "personal_report_excerpt" => report.personal_report_text.gsub(/\n{2,}/, " ").strip,
+      "personal_report_excerpt" => report.personal_report_text.gsub(/\n{2,}/, " ").strip
     }
   end
 

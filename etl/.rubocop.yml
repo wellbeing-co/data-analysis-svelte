@@ -1,0 +1,54 @@
+plugins:
+  - rubocop-minitest
+  - rubocop-rake
+
+AllCops:
+  NewCops: enable
+  TargetRubyVersion: 3.0
+  Exclude:
+    - "vendor/**/*"
+    - "tagging_web/public/**/*"
+
+Layout/LineLength:
+  Max: 120
+
+Style/FrozenStringLiteralComment:
+  Enabled: false
+
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+Minitest/MultipleAssertions:
+  Enabled: false
+
+Lint/ScriptPermission:
+  Enabled: false
+
+Naming/MethodParameterName:
+  AllowedNames:
+    - a
+    - b
+
+Style/Documentation:
+  Enabled: false
+
+Metrics/MethodLength:
+  Max: 25
+
+Metrics/ClassLength:
+  Max: 150
+
+Metrics/BlockLength:
+  Exclude:
+    - "test/**/*_test.rb"
+    - "jobs/**/*.rb"
+    - "bin/generate_demo_data.rb"
+
+Metrics/AbcSize:
+  Max: 30
+
+Metrics/PerceivedComplexity:
+  Max: 9
+
+Naming/PredicateMethod:
+  Enabled: false

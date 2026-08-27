@@ -2,16 +2,16 @@ source "https://rubygems.org"
 
 ruby ">= 3.0"
 
+gem "csv", "~> 3.3"
 gem "kiba", "~> 4.0"
 gem "nokogiri", "~> 1.16"
 gem "rubyzip", "~> 2.3"
-gem "csv", "~> 3.3"
 
 # Local web tagging tool (etl/tagging_web) - lets a non-technical reviewer
 # fill in tags from another machine on the same network.
-gem "sinatra", "~> 4.0"
 gem "puma", ">= 8.0.2"
 gem "rackup", "~> 2.1"
+gem "sinatra", "~> 4.0"
 
 group :test do
   gem "minitest", "~> 5.0"
@@ -22,4 +22,9 @@ group :development do
   # CI security scanning - see ../.github/workflows/ci.yml
   gem "brakeman", "~> 6.0", require: false
   gem "bundler-audit", "~> 0.9", require: false
+
+  # Ruby style/lint - see ../.github/workflows/ci.yml and .rubocop.yml
+  gem "rubocop", "~> 1.60", require: false
+  gem "rubocop-minitest", "~> 0.35", require: false
+  gem "rubocop-rake", "~> 0.6", require: false
 end

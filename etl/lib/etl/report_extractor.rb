@@ -93,14 +93,14 @@ module Etl
         hdl_cholesterol: parse_float(lookup["HDL Cholesterol (mmol/l)"]),
         non_hdl_cholesterol: parse_float(lookup["Non-HDL Cholesterol (mmol/l)"]),
         non_fasted_glucose: parse_float(lookup["Non Fasted Blood Glucose (mmol/l)"]),
-        hba1c: parse_float(lookup["HBA1C (%)"]),
+        hba1c: parse_float(lookup["HBA1C (%)"])
       }
     end
 
     def parse_blood_pressure(value)
       return [nil, nil] unless value
 
-      match = value.match(/(\d+)\s*\/\s*(\d+)/)
+      match = value.match(%r{(\d+)\s*/\s*(\d+)})
       return [nil, nil] unless match
 
       [match[1].to_i, match[2].to_i]
