@@ -76,13 +76,18 @@ a test build) and attaches the resulting installers to a GitHub Release.
 ```
 cd desktop
 npm install
-node --test etl/test/
+npm test
 ```
 
 Covers the Node ETL port: docx extraction (checked against the same sample
 report and expected values as `../etl/test/report_extractor_test.rb`),
 health-metric derivations, tagging store round-trips and a full
 extract-tag-build pipeline run against a temporary directory.
+
+## Network Connectivity
+
+The desktop app has zero network requirements once installed and can be used
+100% offline.
 
 ## Running in development
 
