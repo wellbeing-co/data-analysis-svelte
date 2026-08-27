@@ -1,0 +1,53 @@
+{
+  "name": "complete-wellbeing-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Standalone offline desktop app for the Complete Wellbeing ETL + dashboard",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test",
+    "prepare-static": "node scripts/prepare-static.js",
+    "dist": "npm run prepare-static && electron-builder"
+  },
+  "dependencies": {
+    "@xmldom/xmldom": "^0.9.6",
+    "csv-parse": "^5.5.6",
+    "csv-stringify": "^6.5.0",
+    "jszip": "^3.10.1"
+  },
+  "devDependencies": {
+    "electron": "^32.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "build": {
+    "appId": "co.wellbeing.dataanalysis",
+    "productName": "Complete Wellbeing Reporting",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "etl/**/*",
+      "app-static/**/*",
+      "build/icon.png",
+      "package.json",
+      "!etl/test/**"
+    ],
+    "linux": {
+      "target": "deb",
+      "category": "Office"
+    },
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.healthcare-fitness"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}

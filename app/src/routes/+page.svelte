@@ -9,10 +9,13 @@
 		type YearlySummary
 	} from '$lib/stats';
 	import type { AssessmentRow } from '$lib/types';
+	import { desktopApi } from '$lib/desktopApi';
 	import PieChart from '$lib/components/PieChart.svelte';
 	import BarChart from '$lib/components/BarChart.svelte';
 	import StatCard from '$lib/components/StatCard.svelte';
 	import TrendChart from '$lib/components/TrendChart.svelte';
+
+	const isDesktop = desktopApi() !== null;
 
 	let years = $state<string[]>([]);
 	let selectedYear = $state<string>('');
@@ -86,6 +89,9 @@
 	<header class="masthead">
 		<p class="kicker">Complete Wellbeing - Anonymised Health Assessments</p>
 		<h1>The story of {selectedYear || '...'}</h1>
+		{#if isDesktop}
+			<p class="lede"><a href="/manage">Manage this year's data &rarr;</a></p>
+		{/if}
 		{#if years.length > 0}
 			<nav class="year-picker" aria-label="Choose a year">
 				{#each years as year (year)}

@@ -1,3 +1,9 @@
+@import '@fontsource-variable/fraunces/full.css';
+@import '@fontsource/source-sans-3/400.css';
+@import '@fontsource/source-sans-3/500.css';
+@import '@fontsource/source-sans-3/600.css';
+@import '@fontsource/source-sans-3/700.css';
+
 :root {
 	--color-bg: #faf6ef;
 	--color-bg-panel: #ffffff;
@@ -11,7 +17,7 @@
 	--color-teal-soft: #bcd9d2;
 	--color-gold: #c08a1e;
 
-	--font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+	--font-display: 'Fraunces Variable', Georgia, 'Times New Roman', serif;
 	--font-body: 'Source Sans 3', system-ui, -apple-system, sans-serif;
 
 	--content-width: 46rem;

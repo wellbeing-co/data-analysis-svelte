@@ -1,0 +1,72 @@
+name: Desktop app release
+
+# Builds the standalone desktop app (see ../../desktop/) for Windows, macOS and
+# Linux and attaches the installers to a GitHub Release. Runs on native
+# runners for each OS, since cross-compiling installers for other platforms
+# isn't reliable (NSIS/dmg/deb all expect their own OS's toolchain).
+#
+# Trigger by pushing a tag like `desktop-v1.0.0`, or manually via
+# workflow_dispatch for a test build (uploaded as an artifact, no release).
+on:
+  push:
+    tags:
+      - "desktop-v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            build_script: npm run dist -- --linux deb
+            artifact_glob: desktop/dist/*.deb
+          - os: windows-latest
+            build_script: npm run dist -- --win nsis
+            artifact_glob: desktop/dist/*.exe
+          - os: macos-latest
+            build_script: npm run dist -- --mac dmg
+            artifact_glob: desktop/dist/*.dmg
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install desktop dependencies
+        working-directory: desktop
+        run: npm ci
+
+      - name: Build installer
+        working-directory: desktop
+        run: ${{ matrix.build_script }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.os }}
+          path: ${{ matrix.artifact_glob }}
+          if-no-files-found: error
+
+  release:
+    name: Publish release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/desktop-v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*
+          generate_release_notes: true

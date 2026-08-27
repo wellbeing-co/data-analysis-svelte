@@ -1,0 +1,7 @@
+node_modules
+
+# Copied in by scripts/prepare-static.js from ../app/build-desktop - regenerated on every build.
+/app-static
+
+# electron-builder output (installers, unpacked app, etc.)
+/dist

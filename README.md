@@ -11,8 +11,13 @@ etl/                  Ruby/Kiba ETL: docx -> per-year anonymised CSV
 app/                  SvelteKit dashboard that reads the per-year CSVs
 bin/run               Guided script that walks through the whole thing
 bin/tagging_server    Hands step 2 off to someone else over the browser
-.github/workflows/    CI and security scanning
+desktop/              Standalone offline desktop app (Electron) - see below
+.github/workflows/    CI, security scanning and desktop release builds
 ```
+
+There are two ways to run this: `bin/run` below is the developer/CI-friendly
+Ruby+Node workflow, or use the standalone desktop app** (see ["Standalone desktop
+app"](#standalone-desktop-app) further down).
 
 ## Quick start
 
@@ -80,6 +85,44 @@ web UI, on either machine - is what actually applies it, so nothing reaches
 the file stage 2 reads until someone has looked at the diff. See
 `etl/tagging_web/` for implementation.
 
+## Standalone desktop app
+
+`desktop/` packages the whole app - ETL and dashboard - as a single
+installer (`.exe` on Windows, `.dmg` on macOS, `.deb` on Linux) for someone
+with a clean machine and no developer tools installed.
+
+- The ETL logic (docx extraction, health-metric derivations, tagging,
+  pseudonymisation, demo data) is ported to plain Node.js under
+  `desktop/etl/` - a port of `etl/lib/etl/*.rb` and `etl/jobs/*.rb`,
+  covered by its own test suite (`desktop/etl/test/`) so the packaged app
+  needs nothing beyond the Node runtime that Electron already bundles.
+- An Electron shell (`desktop/electron/`) hosts the dashboard (built as a
+  static SPA, see `app/vite.config.desktop.ts`) over a local HTTP server, and
+  drives the Node ETL via IPC from a `Manage data` screen.
+  (`app/src/routes/manage/`) - choose the folder of yearly `.docx` reports,
+  extract, tag Y/N/Unknown for each flag directly in the app, build and
+  publish, all without a terminal.
+- Everything the desktop app reads/writes (chosen folder path, the
+  pseudonymisation salt, tagging/output CSVs, published data) lives under the
+  OS's normal per-app data directory (`app.getPath('userData')`) - nothing is
+  written elsewhere, and no admin rights are needed to run it.
+- If no data has been published yet, the app seeds itself with demo data on
+  first launch, the same idea as `bin/run`'s empty-folder fallback.
+
+Build it locally with:
+
+```
+cd desktop
+npm install
+npm run dist          # or: npm run dist -- --linux deb / --win nsis / --mac dmg
+```
+
+Installers for all three platforms are also built automatically by
+`.github/workflows/release.yml` on native `ubuntu-latest`/`windows-latest`/
+`macos-latest` runners. Push a tag like `desktop-v1.0.0` to attach them to
+a GitHub Release, or run the workflow manually for a test build. See
+`desktop/README.md` for details.
+
 ## Continuous integration
 
 `.github/workflows/ci.yml` runs on every push/PR:
@@ -93,6 +136,9 @@ the file stage 2 reads until someone has looked at the diff. See
 | Svelte checks, tests & build | `svelte-check`, the Vitest unit tests (`app/src/lib/stats.test.ts`), and a production build. |
 
 All are intended to be required status checks on the default branch.
+`.github/workflows/release.yml` is separate - it only runs on demand or when
+a `desktop-v*` tag is pushed, to build the desktop app's installers (see
+above).
 
 ## The dashboard
 

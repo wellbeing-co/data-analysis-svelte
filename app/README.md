@@ -26,6 +26,14 @@ folder under `../raw-data/` that doesn't have real `.docx` reports in it yet.
 To use real data for a year, copy the ETL output over its CSV and make sure
 the year is listed in `years.json`.
 
+## Fonts
+
+The Fraunces/Source Sans 3 display and body fonts are self-hosted via the
+`@fontsource-variable/fraunces` and `@fontsource/source-sans-3` npm packages
+(imported at the top of `src/app.css`) rather than loaded from Google Fonts -
+so the app makes no external network calls for fonts, which is required for
+the offline desktop build.
+
 ## Developing
 
 ```
@@ -42,3 +50,20 @@ npm run build   # production build
 ```
 
 All three run in CI on every push/PR - see `../.github/workflows/ci.yml`.
+
+## Manage data (desktop app only)
+
+`src/routes/manage/` is a data-management screen for choosing a raw-data
+folder, running extraction/tagging/build for a year and generating demo data
+- all through `window.desktopApi` (see `src/lib/desktopApi.ts`), which only
+exists when this app is loaded inside the `../desktop/` Electron app. When
+served as a normal website it shows a short "desktop app only" message
+instead.
+
+## Desktop build
+
+`npm run build:desktop` (used by `../desktop/scripts/prepare-static.js`)
+builds this app as a static SPA via `vite.config.desktop.ts` and
+`@sveltejs/adapter-static`, output to `build-desktop/` - kept separate from
+the normal `npm run build` output so regular web deployments are unaffected.
+See `../desktop/README.md`.
