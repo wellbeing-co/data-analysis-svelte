@@ -1,12 +1,5 @@
 name: Desktop app release
 
-# Builds the standalone desktop app (see ../../desktop/) for Windows, macOS and
-# Linux and attaches the installers to a GitHub Release. Runs on native
-# runners for each OS, since cross-compiling installers for other platforms
-# isn't reliable (NSIS/dmg/deb all expect their own OS's toolchain).
-#
-# Trigger by pushing a tag like `desktop-v1.0.0`, or manually via
-# workflow_dispatch for a test build (uploaded as an artifact, no release).
 on:
   push:
     tags:
@@ -30,7 +23,7 @@ jobs:
             build_script: npm run dist -- --win nsis
             artifact_glob: desktop/dist/*.exe
           - os: macos-latest
-            build_script: npm run dist -- --mac dmg
+            build_script: npm run dist -- --mac dmg --arm64
             artifact_glob: desktop/dist/*.dmg
     runs-on: ${{ matrix.os }}
     steps:
@@ -44,8 +37,29 @@ jobs:
         working-directory: desktop
         run: npm ci
 
+      - name: Prepare macOS signing certificate
+        if: matrix.os == 'macos-latest'
+        env:
+          MACOS_CERTIFICATE_P12_BASE64: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+        run: |
+          if [ -z "$MACOS_CERTIFICATE_P12_BASE64" ] || [ -z "$MACOS_CERTIFICATE_PASSWORD" ]; then
+            echo "Missing macOS certificate secrets" >&2
+            exit 1
+          fi
+
+          CERT_PATH="$RUNNER_TEMP/macos_signing_certificate.p12"
+          echo "$MACOS_CERTIFICATE_P12_BASE64" | base64 --decode > "$CERT_PATH"
+          echo "CSC_LINK=$CERT_PATH" >> "$GITHUB_ENV"
+          echo "CSC_KEY_PASSWORD=$MACOS_CERTIFICATE_PASSWORD" >> "$GITHUB_ENV"
+
       - name: Build installer
         working-directory: desktop
+        env:
+          SELF_SIGNED: ${{ vars.SELF_SIGNED }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: ${{ matrix.build_script }}
 
       - name: Upload artifact
