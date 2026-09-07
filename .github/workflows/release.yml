@@ -40,10 +40,16 @@ jobs:
       - name: Prepare macOS signing certificate
         if: matrix.os == 'macos-latest'
         env:
+          SELF_SIGNED: ${{ vars.SELF_SIGNED }}
           MACOS_CERTIFICATE_P12_BASE64: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 }}
           MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
         run: |
           if [ -z "$MACOS_CERTIFICATE_P12_BASE64" ] || [ -z "$MACOS_CERTIFICATE_PASSWORD" ]; then
+            if [ "$SELF_SIGNED" = "true" ]; then
+              echo "SELF_SIGNED=true and no macOS certificate secrets set; continuing without importing a signing certificate."
+              exit 0
+            fi
+
             echo "Missing macOS certificate secrets" >&2
             exit 1
           fi
