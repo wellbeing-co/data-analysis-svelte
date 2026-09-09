@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
 # Boots the local tagging web tool (etl/tagging_web) so a non-technical
 # reviewer on another machine on the same network can fill in tags for a
-# year via their browser, instead of opening a spreadsheet by hand.
+# year via a single editable browser table.
 #
 # The browser session is protected with HTTP Basic Auth (credentials
 # generated on first run, see etl/config/tagging_web_credentials.txt - never
 # committed to git). Edits are saved as a proposal and must be reviewed and
-# merged (from the same web UI) before jobs/build_yearly_csv.rb will see them
-# - the same propose -> review -> merge shape as a GitHub pull request.
+# merged (from the same web UI) before jobs/build_yearly_csv.rb will see them.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -57,8 +56,9 @@ echo "  ${BOLD}Password:${RESET} ${PASSWORD}"
 echo
 info "(Both machines must be on the same local network. Credentials are stored"
 info " in etl/config/tagging_web_credentials.txt - delete it to generate new ones.)"
-info "Edits are saved as a proposal - review the diff and merge from"
-info "the same web UI before running jobs/build_yearly_csv.rb for that year."
+info "Edit the table, press save, then review/merge from the same web UI."
+info "After merge, run jobs/build_yearly_csv.rb for that year to generate"
+info "etl/output/<year>.csv for your dashboard/report page charts."
 echo
 info "Press Ctrl+C to stop the server."
 echo

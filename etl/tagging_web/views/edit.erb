@@ -5,38 +5,40 @@
 </p>
 
 <form method="post" action="/<%= @year %>/edit">
-  <table>
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Gender / age</th>
-        <th>Excerpt</th>
-        <% tag_columns.each do |column| %>
-          <th><%= column.tr("_", " ") %></th>
-        <% end %>
-      </tr>
-    </thead>
-    <tbody>
-      <% @rows.each do |row| %>
-        <% id = row["pseudonymous_id"] %>
+  <div class="edit-table-shell">
+    <table class="tag-table">
+      <thead>
         <tr>
-          <td><code><%= id %></code></td>
-          <td><%= row["gender"] %>, <%= row["age"] %></td>
-          <td class="excerpt"><%= row["personal_report_excerpt"] %></td>
+          <th>ID</th>
+          <th>Gender / age</th>
+          <th>Excerpt</th>
           <% tag_columns.each do |column| %>
-            <td>
-              <select name="tags[<%= id %>][<%= column %>]">
-                <option value="">Leave as-is (<%= row[column] %>)</option>
-                <option value="Y">Y</option>
-                <option value="N">N</option>
-                <option value="Unknown">Unknown</option>
-              </select>
-            </td>
+            <th><%= column.tr("_", " ") %></th>
           <% end %>
         </tr>
-      <% end %>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        <% @rows.each do |row| %>
+          <% id = row["pseudonymous_id"] %>
+          <tr>
+            <td><code><%= id %></code></td>
+            <td><%= row["gender"] %>, <%= row["age"] %></td>
+            <td class="excerpt"><%= row["personal_report_excerpt"] %></td>
+            <% tag_columns.each do |column| %>
+              <td>
+                <select name="tags[<%= id %>][<%= column %>]">
+                  <option value="">Leave as-is (<%= row[column] %>)</option>
+                  <option value="Y">Y</option>
+                  <option value="N">N</option>
+                  <option value="Unknown">Unknown</option>
+                </select>
+              </td>
+            <% end %>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
 
   <div class="actions">
     <button type="submit">Submit for review</button>

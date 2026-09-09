@@ -5,8 +5,8 @@ require_relative "../lib/etl/tagging_store"
 module Etl
   # Local web tool that lets a non-technical reviewer - on another machine on
   # the same network - fill in the sleep_issue/stress_burnout/
-  # acupuncture_referral/mental_health_referral tags from a browser instead
-  # of opening a spreadsheet.
+  # acupuncture_referral/mental_health_referral tags from a single editable
+  # browser table.
   #
   # Their edits are never written straight into the tagging CSV that stage 2
   # reads. Instead they're saved as a "pending" proposal and shown as a diff
@@ -38,6 +38,7 @@ module Etl
     end
 
     get "/:year/edit" do
+      @page_class = "page-edit"
       @year = params[:year]
       @review = review_for(@year)
       halt 404, "No tagging file for #{@year}" unless File.exist?(@review.tagging_path)

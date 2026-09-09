@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 # Stage 2: combine the extracted/derived health metrics for a year with the
 # completed tagging CSV for that year, producing the final anonymised
-# CSV consumed by Svelte (output/<year>.csv).
+# CSV for reporting/charting (output/<year>.csv).
 #
 # Requires that jobs/extract_for_tagging.rb has already been run for this
 # year AND that the resulting tagging CSV has its Y/N columns filled in

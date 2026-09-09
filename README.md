@@ -1,23 +1,15 @@
-# Complete Wellbeing - Data Reporting Tool
+# Complete Wellbeing - Ruby ETL for anonymised reporting
 
-Anonymised, aggregated reporting on "Complete Wellbeing Health Assessment"
-reports (`.docx`), grouped by year.
-
-The project has multiple components:
+An ETL-first repository for anonymised, aggregated reporting on
+"Complete Wellbeing Health Assessment" `.docx` reports, grouped by year.
 
 ```
-raw-data/*/           Source .docx reports for 2023 (one folder per year)
-etl/                  Ruby/Kiba ETL: docx -> per-year anonymised CSV
-app/                  SvelteKit dashboard that reads the per-year CSVs
-bin/run               Guided script that walks through the whole thing
-bin/tagging_server    Hands step 2 off to someone else over the browser
-desktop/              Standalone offline desktop app (Electron) - see below
-.github/workflows/    CI, security scanning and desktop release builds
+raw-data/*/           Source .docx reports (one folder per year)
+etl/                  Ruby/Kiba ETL: docx -> anonymised CSVs
+bin/run               Guided ETL walkthrough (extract -> edit -> report-ready)
+bin/tagging_server    Browser UI with editable tagging table
+.github/workflows/    Ruby ETL quality + privacy checks
 ```
-
-There are two ways to run this: `bin/run` below is the developer/CI-friendly
-Ruby+Node workflow, or use the standalone desktop app** (see ["Standalone desktop
-app"](#standalone-desktop-app) further down).
 
 ## Quick start
 
@@ -25,148 +17,59 @@ app"](#standalone-desktop-app) further down).
 bin/run
 ```
 
-This single script takes you through the whole pipeline end to end: it
-checks/installs dependencies (Ruby gems, npm packages), runs the extraction
-for each detected year folder, pauses and tells you exactly which file to
-open and fill in when manual tagging is needed, builds the final CSV,
-publishes it into the dashboard's data folder, then finally offers to boot
-the dashboard (`npm run dev` or a production preview). It's safe to re-run
-any time - already-completed steps are skipped or simply re-confirmed.
+`bin/run` handles dependency checks, extraction for tagging, the browser-based
+editing gate, and yearly anonymised CSV output generation under `etl/output/`.
+It is safe to re-run.
 
-If a year folder (e.g. `raw-data/2024/`) doesn't have any `.docx` reports in
-it yet, `bin/run` generates demo data for that year instead, so
-the dashboard always has something to show. Drop real reports in and
-re-run to replace it.
+If a year folder has no `.docx` reports yet, `bin/run` generates demo data for
+that year in `etl/output/<year>.csv` so downstream charting can still proceed.
 
-## How it works
-
-`bin/run` walks through all of the steps below automatically (pausing for
-step 2, since that needs additional input from another person):
+## ETL pipeline
 
 ```
-docx reports (raw-data/<year>/)
-        │
-        ▼
- 1. bundle exec ruby jobs/extract_for_tagging.rb <year>   (etl/)
-        │  produces etl/tagging/<year>_tagging.csv
-        ▼
- 2. fill in Y/N for sleep_issue, stress_burnout, acupuncture_referral,
-    mental_health_referral - either by hand, or hand this step off to
-    someone else with `bin/tagging_server` (see below)
-        │
-        ▼
- 3. bundle exec ruby jobs/build_yearly_csv.rb <year>       (etl/)
-        │  produces etl/output/<year>.csv
-        ▼
- 4. copy etl/output/<year>.csv and update years.json       (app/static/data/)
-        │
-        ▼
-   npm run dev (app/) -> dashboard answering the main reporting questions
+1. Perform extraction
+   - `bundle exec ruby jobs/extract_for_tagging.rb <year>` (in `etl/`)
+   - Writes `etl/tagging/<year>_tagging.csv`
+
+2. Open the browser tagging page and save edits
+   - Run `bin/tagging_server`
+   - Open the URL shown, edit the single-page table (`Y`/`N` tags), then save
+
+3. Build report-ready output and view dashboard charts
+   - `bundle exec ruby jobs/build_yearly_csv.rb <year>` (in `etl/`)
+   - Produces `etl/output/<year>.csv` for the report page/dashboard
 ```
 
-See `etl/README.md` and `app/README.md` for details on each part.
+Both intermediary and final artifacts are plain open CSV files.
 
-## Handing off tagging to someone else
-
-Step 2 above is the one step that needs someone to actually read each
-report's excerpt, and that person doesn't have to be technical, or even on
-this machine.
+## Browser tagging page
 
 ```
 bin/tagging_server
 ```
 
-This boots a small local web app and prints a URL, username and password to
-share with them (they just need a browser on the same local network). It
-works like a pull request: their submitted tags are saved as a *proposal*,
-never written straight into `etl/tagging/<year>_tagging.csv`. Reviewing that
-proposal (a plain before/after diff) and clicking "Merge" - from the same
-web UI, on either machine - is what actually applies it, so nothing reaches
-the file stage 2 reads until someone has looked at the diff. See
-`etl/tagging_web/` for implementation.
+This runs a local web app for the transform/tagging stage so a non-technical
+reviewer can update a single editable table in the browser and save.
+Saved tags are then used to build yearly CSVs that feed the dashboard/report
+charts.
 
-## Standalone desktop app
+## Dashboard questions covered
 
-`desktop/` packages the whole app - ETL and dashboard - as a single
-installer (`.exe` on Windows, `.dmg` on macOS, `.deb` on Linux) for someone
-with a clean machine and no developer tools installed.
-
-- The ETL logic (docx extraction, health-metric derivations, tagging,
-  pseudonymisation, demo data) is ported to plain Node.js under
-  `desktop/etl/` - a port of `etl/lib/etl/*.rb` and `etl/jobs/*.rb`,
-  covered by its own test suite (`desktop/etl/test/`) so the packaged app
-  needs nothing beyond the Node runtime that Electron already bundles.
-- An Electron shell (`desktop/electron/`) hosts the dashboard (built as a
-  static SPA, see `app/vite.config.desktop.ts`) over a local HTTP server, and
-  drives the Node ETL via IPC from a `Manage data` screen.
-  (`app/src/routes/manage/`) - create a year folder, add `.docx` reports to
-  it, extract, tag Y/N/Unknown for each flag directly in the app, build and
-  publish, all without a terminal.
-- The app never reads reports from an external, user-owned folder - every
-  `.docx` file is explicitly **copied into the app's own storage**
-  (`userData/raw-data/<year>/`) when added, with the exact number of files
-  found and saved (or skipped as duplicates) shown before/after the copy.
-  Each year's folder can be inspected and files removed individually from
-  `Manage data`.
-- Everything the desktop app reads/writes (the copied `.docx` reports, the
-  pseudonymisation salt, tagging/output CSVs, published data) lives under the
-  OS's normal per-app data directory (`app.getPath('userData')`) - nothing is
-  written elsewhere, and no admin rights are needed to run it.
-- The desktop app ships with no sample data. On first launch it shows a
-  welcome screen asking the user to pick a year and add `.docx` files, after
-  which they land on `Manage data` to add more files, extract, tag and
-  publish.
-
-Build it locally with:
-
-```
-cd desktop
-npm install
-npm run dist          # or: npm run dist -- --linux deb / --win nsis / --mac dmg
-```
-
-Installers for all three platforms are also built automatically by
-`.github/workflows/release.yml` on native `ubuntu-latest`/`windows-latest`/
-`macos-latest` runners. Push a tag like `desktop-v1.0.0` to attach them to
-a GitHub Release, or run the workflow manually for a test build. See
-`desktop/README.md` for details.
-
-## Continuous integration
-
-`.github/workflows/ci.yml` runs on every push/PR:
-
-| Job | What it checks |
-| --- | --- |
-| Anonymisation check | Fails the build if any published CSV contains a re-identifying column (name, DOB, email, etc.) or is missing `pseudonymous_id` - see `etl/bin/check_anonymized.rb`. |
-| Ruby security scan | [Brakeman](https://brakeman.org/) (run with `--force`, since `etl/` is Sinatra/Kiba, not Rails) and [bundler-audit](https://github.com/rubysec/bundler-audit) against known gem CVEs. |
-| Ruby lint | [RuboCop](https://rubocop.org/) over `etl/` (see `etl/.rubocop.yml`), run via `bundle exec rubocop` or `bundle exec rake` (which runs it alongside the test suite). |
-| CodeQL | GitHub's static analysis for both the Ruby ETL/tagging tool and the Svelte/TypeScript app. |
-| Svelte checks, tests & build | `svelte-check`, the Vitest unit tests (`app/src/lib/stats.test.ts`), and a production build. |
-
-All are intended to be required status checks on the default branch.
-`.github/workflows/release.yml` is separate - it only runs on demand or when
-a `desktop-v*` tag is pushed, to build the desktop app's installers (see
-above).
-
-## The dashboard
-
-The app reads like a short story for each year: a
-headline, a plain-English narrative for each finding and a chapter at the
-end that compares wellbeing signals and referrals across every year of data
-available, so trends are easy to spot.
-
-## Reporting questions
+The report page should summarise these 7 primary questions in chart form:
 
 1. Split male/female
 2. Age ranges
 3. Sleep issues
-4. Nutritional underfuelling while presenting overall healthy (good cholesterol, good blood pressure)
+4. Nutritional underfuelling while presenting overall healthy (good
+   cholesterol, good blood pressure)
 5. Stress/burnout
 6. Number of acupuncture referrals
 7. Mental health referrals
 
 ## Privacy
 
-The final CSVs never contain names or dates of birth - only a
-non-reversible pseudonymous id (derived from a local, never-committed
-salt), age, gender and health metrics/flags.
+The final CSVs never contain names or dates of birth. Output includes only a
+non-reversible `pseudonymous_id` (derived from a local salt), age, gender, and
+health metrics/flags needed for aggregate analysis.
+
+See `etl/README.md` for ETL internals.

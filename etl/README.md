@@ -2,8 +2,7 @@
 
 A locally-running Ruby [Kiba](https://github.com/thbar/kiba) ETL that reads
 "Complete Wellbeing Health Assessment" `.docx` reports (grouped by year, in
-folders like `../raw-data/2023`) and produces one anonymised CSV per year for the
-Svelte app.
+folders like `../raw-data/2023`) and produces one anonymised CSV per year.
 
 ## Setup
 
@@ -24,7 +23,7 @@ RuboCop also runs in CI on every push/PR - see `../.github/workflows/ci.yml`.
 
 ## Pipeline
 
-The pipeline is two stages because the source reports have no structured
+The pipeline is three stages because the source reports have no structured
 fields for sleep issues, stress/burnout, or acupuncture/mental-health
 referrals. They only appear as free narrative text written differently for
 each client. Rather than guess at these with unreliable keyword matching, a
@@ -47,22 +46,23 @@ Reads every `.docx` in `../raw-data/2023`, and writes/updates
 | `sleep_issue`, `stress_burnout`, `acupuncture_referral`, `mental_health_referral` | `TODO(Y/N)` placeholders to fill in |
 | `personal_report_excerpt` | the narrative text to read while tagging |
 
-Open this file in Excel and replace each
-`TODO(Y/N)` with `Y` or `N` based on the excerpt.
+Then open the browser tagging page and replace each `TODO(Y/N)` with `Y` or
+`N` based on the excerpt.
 
 Re-running this command later (e.g. after adding more reports to the
 year's folder) is safe: it keeps tags already filled in
 (matched by `pseudonymous_id`) and only adds rows for new reports.
 
-### Handing stage 1 off to someone else (tagging_web)
+### Stage 2 - browser editing and save (tagging_web)
 
-Instead of editing the CSV directly, run `../bin/tagging_server` from the
-project root. It boots a small Sinatra app (`tagging_web/`) protected with
-HTTP Basic Auth and prints a URL/username/password to give to a reviewer on
-another machine on the same local network.
+Run `../bin/tagging_server` from the project root. It boots a small Sinatra
+app (`tagging_web/`) protected with HTTP Basic Auth and prints a
+URL/username/password to give to a reviewer on another machine on the same
+local network.
 
-Their submissions are never written straight into
-`etl/tagging/<year>_tagging.csv` - they're saved as a "pending" proposal
+The reviewer edits a single table page and presses save. Submissions are
+never written straight into `etl/tagging/<year>_tagging.csv` - they're saved
+as a "pending" proposal
 (`etl/tagging/pending/<year>_tagging.pending.csv`) and shown as a diff on a
 review page. Merging (from that same page) is what actually applies it to
 the real tagging file - the same propose -> review -> merge shape as a
@@ -70,7 +70,7 @@ GitHub pull request, kept entirely local. See `Etl::TaggingReview`
 (`lib/etl/tagging_review.rb`) for the merge logic and `tagging_web/app.rb`
 for the routes.
 
-### Stage 2 - build the final yearly CSV
+### Stage 3 - build the final yearly CSV and view report charts
 
 Once the tagging CSV has been filled in:
 
@@ -79,12 +79,20 @@ bundle exec ruby jobs/build_yearly_csv.rb 2023
 ```
 
 Reads the `.docx` reports again, merges in the tags, and writes
-`etl/output/2023.csv` - the anonymised, per-year CSV consumed by the Svelte
-app. Rows still containing a `TODO(Y/N)` placeholder are recorded as
+`etl/output/2023.csv` - the anonymised, per-year CSV for reporting and
+charting. Rows still containing a `TODO(Y/N)` placeholder are recorded as
 `Unknown`.
 
-Copy the resulting file into `../app/static/data/2023.csv` (and add `2023`
-to `../app/static/data/years.json`) to publish it to the dashboard.
+Use `etl/output/<year>.csv` as the data source for your single dashboard page
+(for example on GitHub Pages) showing chart summaries for:
+
+1. Split male/female
+2. Age ranges
+3. Sleep issues
+4. Nutritional underfuelling while presenting overall healthy
+5. Stress/burnout
+6. Number of acupuncture referrals
+7. Mental health referrals
 
 ## What gets extracted automatically
 
@@ -109,8 +117,8 @@ salt (`etl/config/salt.txt`, generated on first run (git-ignore). The same file 
 up), but the id cannot be reversed back to a filename or name.
 
 This is enforced in CI. `bin/check_anonymized.rb` scans every published
-CSV (`../app/static/data/*.csv`, `output/*.csv`) for forbidden columns
-(name, DOB, email, phone, address, ...) and for the presence of
+CSV (`output/*.csv`) for forbidden columns (name, DOB, email, phone,
+address, ...) and for the presence of
 `pseudonymous_id`, and fails the build if either check fails. See
 `../.github/workflows/ci.yml`.
 
@@ -121,4 +129,4 @@ given year to stdout, with a few rates (sleep issues, stress/burnout,
 referrals) drifting slightly by year so the dashboard's trends chapter has
 something realistic to show. `../bin/run` (project root) runs this
 automatically for any `raw-data/<year>` folder that has no `.docx` reports
-in it yet, publishing the result straight to `../app/static/data/<year>.csv`.
+in it yet, writing the result to `output/<year>.csv`.

@@ -1,9 +1,8 @@
 #!/usr/bin/env ruby
 # Generates a small, demo dataset with the same shape as
-# a real etl/output/<year>.csv, so the Svelte app can be tested
-# without needing real data. For UI development purposes only.
+# a real etl/output/<year>.csv, without needing real data.
 #
-# Usage: bundle exec ruby bin/generate_demo_data.rb 2023 > ../app/static/data/2023.csv
+# Usage: bundle exec ruby bin/generate_demo_data.rb 2023 > output/2023.csv
 
 require "csv"
 require_relative "../lib/etl/derivations"

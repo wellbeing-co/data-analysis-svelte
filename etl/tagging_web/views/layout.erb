@@ -6,7 +6,7 @@
   <title>Complete Wellbeing - Tagging review</title>
   <link rel="stylesheet" href="/style.css" />
 </head>
-<body>
+<body class="<%= @page_class || (request.path_info.end_with?("/edit") ? "page-edit" : "") %>">
   <header class="topbar">
     <a href="/" class="brand">Complete Wellbeing - Tagging review</a>
   </header>

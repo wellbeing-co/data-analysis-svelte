@@ -3,9 +3,6 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ETL_DIR="$ROOT_DIR/etl"
-APP_DIR="$ROOT_DIR/app"
-APP_DATA_DIR="$APP_DIR/static/data"
-YEARS_JSON="$APP_DATA_DIR/years.json"
 
 if [ -t 1 ]; then
   BOLD=$(tput bold) DIM=$(tput dim) RESET=$(tput sgr0)
@@ -45,7 +42,7 @@ press_enter() {
 check_dependencies() {
   header "Checking dependencies"
   local missing=0
-  for cmd in ruby bundle node npm; do
+  for cmd in ruby bundle; do
     if command -v "$cmd" >/dev/null 2>&1; then
       ok "$cmd found ($(command -v "$cmd"))"
     else
@@ -66,16 +63,6 @@ ensure_etl_deps() {
   else
     info "Installing Ruby gems (bundle install)..."
     (cd "$ETL_DIR" && bundle install)
-  fi
-}
-
-ensure_app_deps() {
-  header "Dashboard setup (app/)"
-  if [ -d "$APP_DIR/node_modules" ]; then
-    ok "npm packages already installed"
-  else
-    info "Installing npm packages (npm install)..."
-    (cd "$APP_DIR" && npm install)
   fi
 }
 
@@ -116,11 +103,10 @@ stage_demo() {
   local year="$1"
   header "Year $year - no reports found, using demo data instead"
   warn "raw-data/$year has no .docx reports in it yet."
-  info "Generating synthetic demo data so the dashboard has something to show for $year."
-  mkdir -p "$APP_DATA_DIR"
-  (cd "$ETL_DIR" && bundle exec ruby bin/generate_demo_data.rb "$year") > "$APP_DATA_DIR/${year}.csv"
-  ok "Generated demo data -> app/static/data/${year}.csv"
-  publish_years_json "$year"
+  info "Generating synthetic demo data so ETL output has something to show for $year."
+  mkdir -p "$ETL_DIR/output"
+  (cd "$ETL_DIR" && bundle exec ruby bin/generate_demo_data.rb "$year") > "$(output_path "$year")"
+  ok "Generated demo data -> etl/output/${year}.csv"
   info "Drop real .docx reports into raw-data/$year/ and re-run bin/run to replace this with real data."
 }
 
@@ -138,12 +124,11 @@ stage_tagging_gate() {
     fi
 
     warn "$pending row(s) in $tfile still need manual tagging."
-    info "Open it in a spreadsheet, fill in sleep_issue,"
-    info "stress_burnout, acupuncture_referral and mental_health_referral"
-    info "(using the personal_report_excerpt column as context), then save."
-    info "Handing this off to someone else? Run 'bin/tagging_server' instead - it"
-    info "lets them tag reports from a browser on another machine, and shows you"
-    info "a review/merge step (like a pull request) before it touches this file."
+    info "Run 'bin/tagging_server', open the browser page for year $year,"
+    info "edit the table values for sleep_issue, stress_burnout,"
+    info "acupuncture_referral and mental_health_referral, then save."
+    info "After saving/merging tags, return here and continue to build"
+    info "etl/output/${year}.csv for the report dashboard charts."
     if press_enter; then
       warn "Skipping year $year."
       return 1
@@ -155,27 +140,6 @@ stage_build() {
   local year="$1"
   header "Year $year - Stage 2: build the final anonymised CSV"
   (cd "$ETL_DIR" && bundle exec ruby jobs/build_yearly_csv.rb "$year")
-}
-
-publish_years_json() {
-  local year="$1"
-  local years_now
-  if [ -f "$YEARS_JSON" ]; then
-    years_now="$(jq -c --arg y "$year" '(. + [$y]) | unique | sort' "$YEARS_JSON")"
-  else
-    years_now="$(jq -nc --arg y "$year" '[$y]')"
-  fi
-  echo "$years_now" > "$YEARS_JSON"
-  ok "app/static/data/years.json now lists: $years_now"
-}
-
-stage_publish() {
-  local year="$1"
-  header "Year $year - Publish to dashboard"
-  mkdir -p "$APP_DATA_DIR"
-  cp "$(output_path "$year")" "$APP_DATA_DIR/${year}.csv"
-  ok "Copied etl/output/${year}.csv -> app/static/data/${year}.csv"
-  publish_years_json "$year"
 }
 
 process_year() {
@@ -191,25 +155,7 @@ process_year() {
     return 1
   fi
   stage_build "$year"
-  stage_publish "$year"
-  ok "Year $year is fully processed and published."
-}
-
-# ---------------------------------------------------------------------------
-# Launch the dashboard
-# ---------------------------------------------------------------------------
-
-launch_app() {
-  header "Launching the dashboard"
-  if ask_yes_no "Start in dev mode? (choose no for a production preview build)" y; then
-    info "Starting SvelteKit dev server - press Ctrl+C to stop it."
-    (cd "$APP_DIR" && exec npm run dev -- --open)
-  else
-    info "Building for production..."
-    (cd "$APP_DIR" && npm run build)
-    info "Starting preview server - press Ctrl+C to stop it."
-    (cd "$APP_DIR" && exec npm run preview -- --open)
-  fi
+  ok "Year $year is fully processed (etl/output/${year}.csv)."
 }
 
 # ---------------------------------------------------------------------------
@@ -217,12 +163,11 @@ launch_app() {
 # ---------------------------------------------------------------------------
 
 main() {
-  echo "${BOLD}Complete Wellbeing - ETL & dashboard walkthrough${RESET}"
-  echo "${DIM}docx reports -> tagging -> per-year CSV -> dashboard${RESET}"
+  echo "${BOLD}Complete Wellbeing - ETL walkthrough${RESET}"
+  echo "${DIM}extract -> browser table edit/save -> report-ready CSV${RESET}"
 
   check_dependencies
   ensure_etl_deps
-  ensure_app_deps
 
   local years=()
   while IFS= read -r y; do years+=("$y"); done < <(discover_years)
@@ -249,15 +194,11 @@ main() {
   done
 
   if [ ${#processed[@]} -eq 0 ]; then
-    warn "No years were processed - the dashboard will show whatever data is already published (or the built-in demo data)."
+    warn "No years were processed."
   else
-    ok "Processed and published: ${processed[*]}"
-  fi
-
-  if ask_yes_no "Boot the dashboard now?" y; then
-    launch_app
-  else
-    info "You can boot it later with: (cd app && npm run dev -- --open)"
+    ok "Processed: ${processed[*]}"
+    info "Output files are available in etl/output/<year>.csv"
+    info "Use those CSVs as the dashboard/report page data source."
   fi
 }
 

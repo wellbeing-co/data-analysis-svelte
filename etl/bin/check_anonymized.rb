@@ -22,8 +22,7 @@ FORBIDDEN_HEADERS = %w[
 
 REQUIRED_HEADERS = %w[pseudonymous_id].freeze
 
-csv_files = Dir.glob(File.join(root, "app", "static", "data", "*.csv")) +
-            Dir.glob(File.join(root, "etl", "output", "*.csv"))
+csv_files = Dir.glob(File.join(root, "etl", "output", "*.csv"))
 
 if csv_files.empty?
   puts "No published CSVs found to check - nothing to do."
@@ -52,6 +51,6 @@ else
   warn "Anonymisation check failed:"
   violations.each { |v| warn "  - #{v}" }
   warn ""
-  warn "Remove any identifying columns before publishing data to app/static/data/ or etl/output/."
+  warn "Remove any identifying columns before publishing data to etl/output/."
   exit 1
 end
