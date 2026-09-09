@@ -1,24 +1,21 @@
 module Etl
-  # Kiba source that yields the path of every .docx report found directly
-  # inside a given year folder (e.g. "../raw-data/2023"). Hidden/temp files
-  # (starting with "." or "~$", as Word creates while a file is open) are skipped.
+  # Kiba source that yields the path of every .docx report found inside a
+  # given year folder (e.g. "../raw-data/2023"), including nested folders.
+  # Hidden/temp files (starting with "." or "~$", as Word creates while a
+  # file is open) are skipped.
   class DocxFolderSource
     def initialize(folder)
       @folder = folder
     end
 
     def each
-      Dir.children(@folder).sort.each do |entry|
-        next unless entry.downcase.end_with?(".docx")
+      files = Dir.glob(File.join(@folder, "**", "*"), File::FNM_CASEFOLD)
+        .select { |path| File.file?(path) }
+        .select { |path| File.extname(path).casecmp(".docx").zero? }
+        .reject { |path| File.basename(path).start_with?(".", "~$") }
+        .sort
 
-        path = File.join(@folder, entry)
-        next unless File.file?(path)
-
-        basename = File.basename(path)
-        next if basename.start_with?(".", "~$")
-
-        yield(path)
-      end
+      files.each { |path| yield(path) }
     end
   end
 end

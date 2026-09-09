@@ -72,7 +72,90 @@ pending_tag_count() {
 
 has_docx_reports() {
   local year_folder="$1"
-  find "$year_folder" -maxdepth 1 -iname '*.docx' ! -iname '~$*' 2>/dev/null | grep -q .
+  find "$year_folder" -type f -iname '*.docx' ! -iname '~$*' ! -name '.*' 2>/dev/null | grep -q .
+}
+
+count_docx_top_level() {
+  local year_folder="$1"
+  find "$year_folder" -maxdepth 1 -type f -iname '*.docx' ! -iname '~$*' ! -name '.*' 2>/dev/null | wc -l | tr -d ' '
+}
+
+count_docx_recursive() {
+  local year_folder="$1"
+  find "$year_folder" -type f -iname '*.docx' ! -iname '~$*' ! -name '.*' 2>/dev/null | wc -l | tr -d ' '
+}
+
+count_temp_docx() {
+  local year_folder="$1"
+  find "$year_folder" -type f -iname '~$*.docx' 2>/dev/null | wc -l | tr -d ' '
+}
+
+count_hidden_docx() {
+  local year_folder="$1"
+  find "$year_folder" -type f -iname '.*.docx' 2>/dev/null | wc -l | tr -d ' '
+}
+
+count_docx_with_trailing_spaces() {
+  local year_folder="$1"
+  find "$year_folder" -type f -iregex '.*\.docx[[:space:]]+$' 2>/dev/null | wc -l | tr -d ' '
+}
+
+csv_data_row_count() {
+  local path="$1"
+  [ -f "$path" ] || {
+    echo 0
+    return
+  }
+
+  local lines
+  lines=$(wc -l < "$path")
+  if [ "$lines" -le 1 ]; then
+    echo 0
+  else
+    echo $((lines - 1))
+  fi
+}
+
+show_docx_sample() {
+  local year_folder="$1"
+  local year="$2"
+
+  local sample
+  sample=$(find "$year_folder" -type f -iname '*.docx' ! -iname '~$*' ! -name '.*' 2>/dev/null | sort | head -n 3)
+  [ -n "$sample" ] || return
+
+  info "Sample file(s) seen for $year:"
+  while IFS= read -r path; do
+    [ -n "$path" ] || continue
+    local rel_path
+    rel_path="${path#"$ROOT_DIR/"}"
+    info "  - $rel_path"
+  done <<< "$sample"
+}
+
+log_docx_diagnostics() {
+  local year="$1"
+  local year_folder
+  year_folder="$(raw_year_path "$year")"
+
+  local top_level recursive nested temp hidden trailing
+  top_level=$(count_docx_top_level "$year_folder")
+  recursive=$(count_docx_recursive "$year_folder")
+  nested=$((recursive - top_level))
+  temp=$(count_temp_docx "$year_folder")
+  hidden=$(count_hidden_docx "$year_folder")
+  trailing=$(count_docx_with_trailing_spaces "$year_folder")
+
+  info "raw-data/$year diagnostics: $recursive usable .docx file(s) ($top_level top-level, $nested nested)."
+  [ "$temp" -gt 0 ] && warn "Skipped $temp temporary Word lock file(s) (~\$*.docx)."
+  [ "$hidden" -gt 0 ] && warn "Skipped $hidden hidden .docx file(s) (starting with .)."
+  [ "$trailing" -gt 0 ] && warn "Found $trailing file(s) with trailing spaces after .docx; rename them to end exactly in .docx."
+
+  if [ "$top_level" -eq 0 ] && [ "$nested" -gt 0 ]; then
+    warn "No top-level .docx files found, but nested folders contain .docx files. Nested files will be processed."
+  fi
+
+  show_docx_sample "$year_folder" "$year"
 }
 
 # ---------------------------------------------------------------------------
@@ -88,12 +171,12 @@ stage_extract() {
 stage_demo() {
   local year="$1"
   header "Year $year - no reports found, using demo data instead"
-  warn "raw-data/$year has no .docx reports in it yet."
+  warn "raw-data/$year has no usable .docx reports (after filtering temp/hidden files)."
   info "Generating synthetic demo data so ETL output has something to show for $year."
   mkdir -p "$ETL_DIR/output"
   (cd "$ETL_DIR" && bundle exec ruby bin/generate_demo_data.rb "$year") > "$(output_path "$year")"
   ok "Generated final report output -> etl/output/${year}.csv"
-  info "Drop real .docx reports into raw-data/$year/ and re-run bin/extract to replace this with real data."
+  info "Drop real .docx reports into raw-data/$year/ (or nested subfolders) and re-run bin/extract to replace this with real data."
 }
 
 stage_build() {
@@ -104,13 +187,26 @@ stage_build() {
 
 process_year() {
   local year="$1"
+  local year_folder
+  year_folder="$(raw_year_path "$year")"
 
-  if ! has_docx_reports "$(raw_year_path "$year")"; then
+  log_docx_diagnostics "$year"
+
+  if ! has_docx_reports "$year_folder"; then
     stage_demo "$year"
     return 0
   fi
 
   stage_extract "$year"
+
+  local tagging_rows
+  tagging_rows=$(csv_data_row_count "$(tagging_path "$year")")
+  if [ "$tagging_rows" -eq 0 ]; then
+    fail "Safety check failed: extraction found .docx files but produced 0 tag rows for $year."
+    warn "Check whether the source files are valid .docx reports and readable, then re-run bin/extract --year $year."
+    return 1
+  fi
+
   stage_build "$year"
   ok "Year $year is fully processed (final report output: etl/output/${year}.csv)."
 }
