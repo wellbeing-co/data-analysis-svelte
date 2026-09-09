@@ -8,7 +8,12 @@ module Etl
     end
 
     def each
-      Dir.glob(File.join(@folder, "*.docx")).each do |path|
+      Dir.children(@folder).sort.each do |entry|
+        next unless entry.downcase.end_with?(".docx")
+
+        path = File.join(@folder, entry)
+        next unless File.file?(path)
+
         basename = File.basename(path)
         next if basename.start_with?(".", "~$")
 
