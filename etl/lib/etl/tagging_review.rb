@@ -52,7 +52,7 @@ module Etl
     def pending_meta
       return nil unless pending?
 
-      { submitted_at: File.mtime(pending_path) }
+      {submitted_at: File.mtime(pending_path)}
     end
 
     # Called from the edit form: merges the submitted tag values on top of
@@ -91,7 +91,7 @@ module Etl
           after = proposed_row[column]
           next if before == after
 
-          { column: column, before: before, after: after }
+          {column: column, before: before, after: after}
         end
 
         next if changes.empty?

@@ -4,8 +4,9 @@ require "fileutils"
 module Etl
   class TaggingStore
     TAG_COLUMNS = %w[sleep_issue stress_burnout acupuncture_referral mental_health_referral].freeze
+    TAG_MATCH_COLUMNS = TAG_COLUMNS.map { |column| "#{column}_match" }.freeze
 
-    HEADERS = (%w[pseudonymous_id source_file gender age] + TAG_COLUMNS + %w[personal_report_excerpt]).freeze
+    HEADERS = (%w[pseudonymous_id source_file gender age] + TAG_COLUMNS + TAG_MATCH_COLUMNS + %w[personal_report_excerpt]).freeze
 
     def self.load(path)
       return {} unless File.exist?(path)
@@ -28,6 +29,10 @@ module Etl
 
     def self.blank_tag
       "TODO(Y/N)"
+    end
+
+    def self.match_column_for(tag_column)
+      "#{tag_column}_match"
     end
   end
 end

@@ -16,8 +16,7 @@ module Etl
       :resting_pulse,
       :total_cholesterol, :hdl_cholesterol, :non_hdl_cholesterol,
       :non_fasted_glucose, :hba1c,
-      :personal_report_text, :nutrition_text,
-      keyword_init: true
+      :personal_report_text, :nutrition_text
     )
 
     def self.extract(path)

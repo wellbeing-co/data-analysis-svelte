@@ -1,47 +1,73 @@
 <h1>Tag reports - <%= @year %></h1>
-<p class="hint">
-  For each report, read the excerpt and choose Y/N (or Unknown if it's not mentioned)
-  for each column. Anything left as "Leave as-is" keeps its current value.
-</p>
 
-<form method="post" action="/<%= @year %>/edit">
-  <div class="edit-table-shell">
-    <table class="tag-table">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Gender / age</th>
-          <th>Excerpt</th>
-          <% tag_columns.each do |column| %>
-            <th><%= column.tr("_", " ") %></th>
-          <% end %>
-        </tr>
-      </thead>
-      <tbody>
-        <% @rows.each do |row| %>
-          <% id = row["pseudonymous_id"] %>
-          <tr>
-            <td><code><%= id %></code></td>
-            <td><%= row["gender"] %>, <%= row["age"] %></td>
-            <td class="excerpt"><%= row["personal_report_excerpt"] %></td>
-            <% tag_columns.each do |column| %>
-              <td>
-                <select name="tags[<%= id %>][<%= column %>]">
-                  <option value="">Leave as-is (<%= row[column] %>)</option>
-                  <option value="Y">Y</option>
-                  <option value="N">N</option>
-                  <option value="Unknown">Unknown</option>
-                </select>
-              </td>
-            <% end %>
-          </tr>
-        <% end %>
-      </tbody>
-    </table>
+<% if @saved %>
+  <p class="status success">Saved. Keep going to the next record.</p>
+<% end %>
+
+<div class="record-progress">
+  <div>
+    Record <strong><%= @record_index + 1 %></strong> of <strong><%= @total_records %></strong>
   </div>
+  <div class="record-jump-links">
+    <% if @record_index.positive? %>
+      <a href="/<%= @year %>/edit?at=<%= @previous_index %>">Previous</a>
+    <% else %>
+      <span class="disabled">Previous</span>
+    <% end %>
+    <% if @record_index < (@total_records - 1) %>
+      <a href="/<%= @year %>/edit?at=<%= @next_index %>">Next</a>
+    <% else %>
+      <span class="disabled">Next</span>
+    <% end %>
+  </div>
+</div>
 
-  <div class="actions">
-    <button type="submit">Submit for review</button>
-    <a class="button secondary" href="/">Cancel</a>
+<form method="post" action="/<%= @year %>/edit" class="record-form">
+  <input type="hidden" name="at" value="<%= @record_index %>" />
+
+  <section class="record-card">
+    <div class="record-meta">
+      <div><span class="meta-label">ID</span> <code><%= @record_id %></code></div>
+      <div><span class="meta-label">Gender</span> <%= @record["gender"].to_s.empty? ? "Unknown" : @record["gender"] %></div>
+      <div><span class="meta-label">Age</span> <%= @record["age"].to_s.empty? ? "Unknown" : @record["age"] %></div>
+    </div>
+
+    <% excerpt = @record["personal_report_excerpt"].to_s.strip %>
+    <details class="excerpt-accordion">
+      <summary>
+        <span class="excerpt-preview"><%= excerpt %></span>
+        <span class="excerpt-toggle">See full excerpt</span>
+      </summary>
+      <div class="excerpt-full"><%= excerpt %></div>
+    </details>
+
+    <div class="tag-grid">
+      <% tag_columns.each do |column| %>
+        <% current = selected_tag_value(@record, column) %>
+        <% match = suggested_match_for(@record, column).to_s.strip %>
+        <% suggested = match.empty? ? "None" : "Y" %>
+        <label class="tag-question" for="tag_<%= column %>">
+          <span class="question-title"><%= column.tr("_", " ").split.map(&:capitalize).join(" ") %></span>
+          <span class="question-suggestion">
+            Suggested: <strong><%= suggested %></strong>
+            <% unless match.empty? %>
+              <span class="keyword-match">Matched <code><%= match %></code></span>
+            <% end %>
+          </span>
+          <select id="tag_<%= column %>" name="tags[<%= @record_id %>][<%= column %>]" aria-label="<%= column.tr("_", " ") %> for <%= @record_id %>">
+            <option value="Y" <%= "selected" if current == "Y" %>>Y</option>
+            <option value="N" <%= "selected" if current == "N" %>>N</option>
+            <option value="Unknown" <%= "selected" if current == "Unknown" %>>Unknown</option>
+          </select>
+        </label>
+      <% end %>
+    </div>
+  </section>
+
+  <div class="edit-action-bar">
+    <div class="actions edit-action-bar-inner">
+      <a class="button secondary" href="/">Back</a>
+      <button type="submit">Save &amp; continue</button>
+    </div>
   </div>
 </form>

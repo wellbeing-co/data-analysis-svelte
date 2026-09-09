@@ -23,8 +23,6 @@ group :development do
   gem "brakeman", "~> 6.0", require: false
   gem "bundler-audit", "~> 0.9", require: false
 
-  # Ruby style/lint - see ../.github/workflows/ci.yml and .rubocop.yml
-  gem "rubocop", "~> 1.60", require: false
-  gem "rubocop-minitest", "~> 0.35", require: false
-  gem "rubocop-rake", "~> 0.6", require: false
+  # Ruby style/lint - see ../.github/workflows/ci.yml
+  gem "standard", "~> 1.39", require: false
 end

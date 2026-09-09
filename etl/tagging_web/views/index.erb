@@ -1,27 +1,47 @@
 <h1>Years awaiting tagging</h1>
 <p class="hint">
-  Pick a year, fill in the tags from the excerpt, then submit for review.
-  Nothing is written to the real tagging file until it's reviewed and merged.
+  Pick a year, review records, and save as you go. The report always uses your
+  latest saved tags.
 </p>
 
 <% if @years.empty? %>
-  <p>No tagging files found yet. Run <code>bundle exec ruby jobs/extract_for_tagging.rb YEAR</code> first.</p>
+  <% if @extract_error %>
+    <div class="status error"><%= @extract_error %></div>
+    <% if @extract_output && !@extract_output.strip.empty? %>
+      <pre class="error-log"><%= @extract_output %></pre>
+    <% end %>
+  <% end %>
+
+  <p>No tagging files found yet. Run extraction here to create the tagging file.</p>
+  <form method="post" action="/run-extraction" class="actions">
+    <label>
+      Year
+      <input
+        type="text"
+        name="year"
+        inputmode="numeric"
+        pattern="\d{4}"
+        maxlength="4"
+        placeholder="2025"
+        value="<%= @extract_year %>"
+        required
+      >
+    </label>
+    <button type="submit">Run extraction</button>
+  </form>
 <% else %>
   <ul class="year-list">
-    <% @years.each do |review| %>
-      <% todo_count = review.rows.count { |r| tag_columns.any? { |c| r[c] == blank_tag } } %>
-      <li class="year-card<%= review.pending? ? ' has-pending' : '' %>">
+    <% @years.each do |year| %>
+      <% rows = rows_for(year) %>
+      <% todo_count = rows.count { |r| tag_columns.any? { |c| r[c] == blank_tag } } %>
+      <li class="year-card">
         <div>
-          <strong><%= review.year %></strong>
-          <div class="hint"><%= review.rows.size %> report(s), <%= todo_count %> still untagged</div>
+          <strong><%= year %></strong>
+          <div class="hint"><%= rows.size %> report(s), <%= todo_count %> still untagged</div>
         </div>
-        <div>
-          <% if review.pending? %>
-            <span class="badge pending">pending review</span>
-            <a class="button" href="/<%= review.year %>/review">Review</a>
-          <% else %>
-            <a class="button" href="/<%= review.year %>/edit">Open</a>
-          <% end %>
+        <div class="year-actions">
+          <a class="button" href="/<%= year %>/edit">Open</a>
+          <a class="button secondary" href="/<%= year %>/report">Report</a>
         </div>
       </li>
     <% end %>

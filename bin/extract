@@ -37,7 +37,7 @@ check_dependencies() {
     fi
   done
   if [ "$missing" -eq 1 ]; then
-    fail "Install the missing tool(s) above, then re-run bin/run."
+    fail "Install the missing tool(s) above, then re-run bin/extract."
     exit 1
   fi
 }
@@ -92,8 +92,8 @@ stage_demo() {
   info "Generating synthetic demo data so ETL output has something to show for $year."
   mkdir -p "$ETL_DIR/output"
   (cd "$ETL_DIR" && bundle exec ruby bin/generate_demo_data.rb "$year") > "$(output_path "$year")"
-  ok "Generated demo data -> etl/output/${year}.csv"
-  info "Drop real .docx reports into raw-data/$year/ and re-run bin/run to replace this with real data."
+  ok "Generated final report output -> etl/output/${year}.csv"
+  info "Drop real .docx reports into raw-data/$year/ and re-run bin/extract to replace this with real data."
 }
 
 stage_build() {
@@ -112,7 +112,7 @@ process_year() {
 
   stage_extract "$year"
   stage_build "$year"
-  ok "Year $year is fully processed (etl/output/${year}.csv)."
+  ok "Year $year is fully processed (final report output: etl/output/${year}.csv)."
 }
 
 # ---------------------------------------------------------------------------
@@ -130,7 +130,7 @@ main() {
         ;;
       *)
         fail "Unknown option: $1"
-        info "Usage: bin/run [--year YYYY]"
+        info "Usage: bin/extract [--year YYYY]"
         exit 1
         ;;
     esac
@@ -177,7 +177,7 @@ main() {
     warn "No years were processed."
   else
     ok "Processed: ${processed[*]}"
-    info "Output files are available in etl/output/<year>.csv"
+    info "Final report files are available in etl/output/<year>.csv"
     info "Use those CSVs as the dashboard/report page data source."
   fi
 }

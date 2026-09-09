@@ -35,17 +35,28 @@ job = Kiba.parse do
     report = Etl::ReportExtractor.extract(path)
     id = Etl::Derivations.pseudonymous_id(year, File.basename(path), salt)
     existing = existing_tags[id]
+    excerpt = report.personal_report_text.gsub(/\n{2,}/, " ").strip
+
+    inferred_matches = Etl::TaggingStore::TAG_COLUMNS.to_h do |column|
+      [column, Etl::Derivations.matched_keyword_from_excerpt(excerpt, column)]
+    end
+
+    inferred_tags = inferred_matches.transform_values { |match| match ? "Y" : nil }
 
     {
       "pseudonymous_id" => id,
       "source_file" => File.basename(path),
       "gender" => report.gender,
       "age" => report.age,
-      "sleep_issue" => existing&.fetch("sleep_issue", nil) || Etl::TaggingStore.blank_tag,
-      "stress_burnout" => existing&.fetch("stress_burnout", nil) || Etl::TaggingStore.blank_tag,
-      "acupuncture_referral" => existing&.fetch("acupuncture_referral", nil) || Etl::TaggingStore.blank_tag,
-      "mental_health_referral" => existing&.fetch("mental_health_referral", nil) || Etl::TaggingStore.blank_tag,
-      "personal_report_excerpt" => report.personal_report_text.gsub(/\n{2,}/, " ").strip
+      "sleep_issue" => Etl::Derivations.resolve_tag(existing&.fetch("sleep_issue", nil), inferred_tags["sleep_issue"], Etl::TaggingStore.blank_tag),
+      "stress_burnout" => Etl::Derivations.resolve_tag(existing&.fetch("stress_burnout", nil), inferred_tags["stress_burnout"], Etl::TaggingStore.blank_tag),
+      "acupuncture_referral" => Etl::Derivations.resolve_tag(existing&.fetch("acupuncture_referral", nil), inferred_tags["acupuncture_referral"], Etl::TaggingStore.blank_tag),
+      "mental_health_referral" => Etl::Derivations.resolve_tag(existing&.fetch("mental_health_referral", nil), inferred_tags["mental_health_referral"], Etl::TaggingStore.blank_tag),
+      "sleep_issue_match" => inferred_matches["sleep_issue"],
+      "stress_burnout_match" => inferred_matches["stress_burnout"],
+      "acupuncture_referral_match" => inferred_matches["acupuncture_referral"],
+      "mental_health_referral_match" => inferred_matches["mental_health_referral"],
+      "personal_report_excerpt" => excerpt
     }
   end
 
@@ -60,5 +71,4 @@ Kiba.run(job)
 Etl::TaggingStore.write(tagging_path, rows)
 
 puts "Wrote #{rows.size} row(s) to #{tagging_path}"
-puts "=> Open this file, fill in Y/N for each #{Etl::TaggingStore::TAG_COLUMNS.join(', ')} column,"
-puts "   then run: bundle exec ruby jobs/build_yearly_csv.rb #{year}"
+puts "=> Start ../bin/tag, open /#{year}/edit, then use Save & continue in the web UI."

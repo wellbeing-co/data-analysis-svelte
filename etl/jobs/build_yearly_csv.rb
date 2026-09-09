@@ -110,4 +110,4 @@ end
 
 Kiba.run(job)
 
-puts "Wrote #{File.join('etl', 'output', "#{year}.csv")}"
+puts "Wrote #{File.join("etl", "output", "#{year}.csv")}"

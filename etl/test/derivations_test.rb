@@ -55,4 +55,33 @@ class DerivationsTest < Minitest::Test
     refute Etl::Derivations.nutritional_underfuelling_flag("Your diet looks well balanced.")
     refute Etl::Derivations.nutritional_underfuelling_flag(nil)
   end
+
+  def test_inferred_tag_from_excerpt_matches_keywords_for_all_manual_tag_columns
+    assert_equal "Y", Etl::Derivations.inferred_tag_from_excerpt("Client reports insomnia and poor sleep quality.", "sleep_issue")
+    assert_equal "Y", Etl::Derivations.inferred_tag_from_excerpt("Noted high stress and signs of burnout at work.", "stress_burnout")
+    assert_equal "Y", Etl::Derivations.inferred_tag_from_excerpt("Plan includes acupuncture referral next month.", "acupuncture_referral")
+    assert_equal "Y", Etl::Derivations.inferred_tag_from_excerpt("Recommend counselling and psychologist input.", "mental_health_referral")
+  end
+
+  def test_matched_keyword_from_excerpt_returns_first_matching_keyword
+    excerpt = "Client reports poor sleep with insomnia and night waking."
+    assert_equal "insomnia", Etl::Derivations.matched_keyword_from_excerpt(excerpt, "sleep_issue")
+  end
+
+  def test_matched_keyword_from_excerpt_returns_nil_for_no_match_or_unknown_column
+    refute Etl::Derivations.matched_keyword_from_excerpt("General positive wellbeing summary.", "sleep_issue")
+    refute Etl::Derivations.matched_keyword_from_excerpt("General positive wellbeing summary.", "unknown_column")
+  end
+
+  def test_inferred_tag_from_excerpt_returns_nil_when_no_match_or_unknown_column
+    refute Etl::Derivations.inferred_tag_from_excerpt("General positive wellbeing summary.", "sleep_issue")
+    refute Etl::Derivations.inferred_tag_from_excerpt("General positive wellbeing summary.", "unknown_column")
+  end
+
+  def test_resolve_tag_prefers_existing_manual_values_then_inferred_then_blank
+    assert_equal "N", Etl::Derivations.resolve_tag("N", "Y", "TODO(Y/N)")
+    assert_equal "Unknown", Etl::Derivations.resolve_tag("Unknown", "Y", "TODO(Y/N)")
+    assert_equal "Y", Etl::Derivations.resolve_tag("TODO(Y/N)", "Y", "TODO(Y/N)")
+    assert_equal "TODO(Y/N)", Etl::Derivations.resolve_tag("", nil, "TODO(Y/N)")
+  end
 end

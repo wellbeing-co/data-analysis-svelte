@@ -1,0 +1,52 @@
+<h1>Report summary - <%= @year %></h1>
+
+<p class="hint">
+  <% if @source_mode == :output %>
+    Source: final report output file
+    <code>etl/output/<%= @year %>.csv</code> rebuilt from the latest saved tags
+    (<%= @summary[:total] %> record(s)).
+  <% else %>
+    Source: saved tagging data for <%= @year %> (<%= @summary[:total] %>
+    record(s)); yearly ETL output is currently unavailable.
+  <% end %>
+</p>
+
+<div class="actions">
+  <a class="button secondary" href="/">Back to years</a>
+  <a class="button secondary" href="/<%= @year %>/edit">Edit tags</a>
+</div>
+
+<div class="metric-grid">
+  <section class="metric-card">
+    <h2>1. Split male/female</h2>
+    <% @summary[:gender].sort.each do |label, count| %>
+      <div class="metric-row"><span><%= label %></span><strong><%= count %></strong></div>
+      <div class="bar"><div style="width: <%= percentage(count, @summary[:total]) %>%"></div></div>
+    <% end %>
+  </section>
+
+  <section class="metric-card">
+    <h2>2. Age ranges</h2>
+    <% @summary[:age_range].sort.each do |label, count| %>
+      <div class="metric-row"><span><%= label %></span><strong><%= count %></strong></div>
+      <div class="bar"><div style="width: <%= percentage(count, @summary[:total]) %>%"></div></div>
+    <% end %>
+  </section>
+
+  <section class="metric-card">
+    <h2>3. Combined chart (vs total)</h2>
+    <% [
+      ["Sleep issues", @summary[:sleep_issue_yes]],
+      ["Nutrition underfuel while healthy", @summary[:nutritional_underfuelling_while_healthy]],
+      ["Acupuncture referrals", @summary[:acupuncture_referral_yes]],
+      ["Mental health referrals", @summary[:mental_health_referral_yes]]
+    ].each do |label, count| %>
+      <div class="metric-row combined-row">
+        <span><%= label %></span>
+        <strong><%= count %> / <%= @summary[:total] %></strong>
+      </div>
+      <div class="bar"><div style="width: <%= percentage(count, @summary[:total]) %>%"></div></div>
+    <% end %>
+    <div class="binary-axis"><span>0%</span><span>100%</span></div>
+  </section>
+</div>

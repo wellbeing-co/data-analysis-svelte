@@ -11,7 +11,7 @@ module Etl
   class DocxDocument
     W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main".freeze
 
-    Block = Struct.new(:type, :text, :rows, keyword_init: true)
+    Block = Struct.new(:type, :text, :rows)
 
     attr_reader :blocks
 

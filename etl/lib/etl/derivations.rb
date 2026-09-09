@@ -32,13 +32,13 @@ module Etl
       return nil if systolic.nil? || diastolic.nil?
 
       systolic_cat = if systolic >= 140 then :red
-                     elsif systolic >= 130 then :amber
-                     else :green
-                     end
+      elsif systolic >= 130 then :amber
+      else :green
+      end
       diastolic_cat = if diastolic >= 90 then :red
-                      elsif diastolic >= 85 then :amber
-                      else :green
-                      end
+      elsif diastolic >= 85 then :amber
+      else :green
+      end
       worse_category(systolic_cat, diastolic_cat)
     end
 
@@ -83,6 +83,26 @@ module Etl
       "not fuelling", "not fueling", "inadequate intake"
     ].freeze
 
+    TAG_KEYWORDS = {
+      "sleep_issue" => [
+        "insomnia", "sleep issue", "sleep issues", "poor sleep",
+        "trouble sleeping", "difficulty sleeping", "sleep disturbance",
+        "waking through the night", "waking in the night", "sleep deprivation"
+      ],
+      "stress_burnout" => [
+        "stress", "stressed", "burnout", "burn out", "burnt out",
+        "overwhelmed", "overwhelm", "workload pressure", "work pressure"
+      ],
+      "acupuncture_referral" => [
+        "acupuncture", "acupuncturist", "referred for acupuncture",
+        "chinese medicine", "traditional chinese medicine", "herbal medicine"
+      ],
+      "mental_health_referral" => [
+        "mental health referral", "mental health support", "counselling",
+        "counseling", "psychologist", "therapist", "therapy", "psychiatrist"
+      ]
+    }.freeze
+
     def nutritional_underfuelling_flag(nutrition_text)
       return false if nutrition_text.nil? || nutrition_text.empty?
 
@@ -90,14 +110,35 @@ module Etl
       UNDERFUELLING_KEYWORDS.any? { |kw| text.include?(kw) }
     end
 
+    def matched_keyword_from_excerpt(excerpt_text, tag_column)
+      keywords = TAG_KEYWORDS[tag_column] || []
+      return nil if keywords.empty?
+
+      text = excerpt_text.to_s.downcase
+      return nil if text.empty?
+
+      keywords.find { |kw| text.include?(kw) }
+    end
+
+    def inferred_tag_from_excerpt(excerpt_text, tag_column)
+      matched_keyword_from_excerpt(excerpt_text, tag_column) ? "Y" : nil
+    end
+
+    def resolve_tag(existing_value, inferred_value, blank_value)
+      existing = existing_value.to_s.strip
+      return existing_value unless existing.empty? || existing == blank_value
+
+      inferred_value || blank_value
+    end
+
     def worse_category(a, b)
-      order = { green: 0, amber: 1, red: 2 }
-      order[a] >= order[b] ? label_for(a) : label_for(b)
+      order = {green: 0, amber: 1, red: 2}
+      (order[a] >= order[b]) ? label_for(a) : label_for(b)
     end
     private_class_method :worse_category
 
     def label_for(sym)
-      { green: "Green", amber: "Amber", red: "Red" }[sym]
+      {green: "Green", amber: "Amber", red: "Red"}[sym]
     end
     private_class_method :label_for
   end

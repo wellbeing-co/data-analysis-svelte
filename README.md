@@ -6,23 +6,25 @@ An ETL-first repository for anonymised, aggregated reporting on
 ```
 raw-data/*/           Source .docx reports (one folder per year)
 etl/                  Ruby/Kiba ETL: docx -> anonymised CSVs
-bin/run               Guided ETL walkthrough (extract -> edit -> report-ready)
-bin/tagging_server    Browser UI with editable tagging table
+bin/extract           Guided ETL walkthrough (extract -> edit -> report-ready)
+bin/tag               Browser UI with editable tagging table
 .github/workflows/    Ruby ETL quality + privacy checks
 ```
 
 ## Quick start
 
 ```
-bin/run
+bin/extract
 ```
 
-`bin/run` handles dependency checks, extraction for tagging, the browser-based
-editing gate, and yearly anonymised CSV output generation under `etl/output/`.
+`bin/extract` handles dependency checks, extraction for tagging, the browser-based
+editing gate, and yearly anonymised final report CSV generation under
+`etl/output/`.
 It is safe to re-run.
 
-If a year folder has no `.docx` reports yet, `bin/run` generates demo data for
-that year in `etl/output/<year>.csv` so downstream charting can still proceed.
+If a year folder has no `.docx` reports yet, `bin/extract` generates demo data for
+that year in `etl/output/<year>.csv` (the final report output) so downstream
+charting can still proceed.
 
 ## ETL pipeline
 
@@ -32,26 +34,28 @@ that year in `etl/output/<year>.csv` so downstream charting can still proceed.
    - Writes `etl/tagging/<year>_tagging.csv`
 
 2. Open the browser tagging page and save edits
-   - Run `bin/tagging_server`
-   - Open the URL shown, edit the single-page table (`Y`/`N` tags), then save
+   - Run `bin/tag`
+   - Open the URL shown, review records, then Save & continue
 
-3. Build report-ready output and view dashboard charts
-   - `bundle exec ruby jobs/build_yearly_csv.rb <year>` (in `etl/`)
-   - Produces `etl/output/<year>.csv` for the report page/dashboard
+3. Open the yearly report page
+   - In the web tool, open `/:year/report`
+   - The report rebuilds from your latest saved tags automatically
 ```
 
-Both intermediary and final artifacts are plain open CSV files.
+Both intermediary and final artifacts are plain open CSV files:
+`etl/tagging/` is post-extract editable data, and `etl/output/` is final
+report-ready data.
 
 ## Browser tagging page
 
 ```
-bin/tagging_server
+bin/tag
 ```
 
 This runs a local web app for the transform/tagging stage so a non-technical
 reviewer can update a single editable table in the browser and save.
-Saved tags are then used to build yearly CSVs that feed the dashboard/report
-charts.
+After saves, open the per-year report page and it will use the latest saved
+tags automatically.
 
 ## Dashboard questions covered
 

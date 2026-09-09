@@ -5,7 +5,7 @@ module Etl
   # Basic-auth credentials for the local tagging web tool (etl/tagging_web).
   #
   # Generated once on first run (same pattern as Etl::Salt) so the person
-  # running `bin/tagging_server` can hand a username/password to the
+  # running `bin/tag` can hand a username/password to the
   # non-technical reviewer without ever committing a secret to git.
   module TaggingWebCredentials
     PATH = File.expand_path("../../config/tagging_web_credentials.txt", __dir__)

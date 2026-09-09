@@ -14,12 +14,12 @@ bundle install
 ## Tests & linting
 
 ```
-bundle exec rake        # runs the minitest suite, then RuboCop
-bundle exec rubocop     # RuboCop only (style/lint over etl/, see .rubocop.yml)
-bundle exec rubocop -a  # auto-correct safe offences
+bundle exec rake        # runs the minitest suite, then StandardRB
+bundle exec standardrb  # StandardRB only (style/lint over etl/)
+bundle exec standardrb --fix  # auto-fix supported offences
 ```
 
-RuboCop also runs in CI on every push/PR - see `../.github/workflows/ci.yml`.
+StandardRB also runs in CI on every push/PR - see `../.github/workflows/ci.yml`.
 
 ## Pipeline
 
@@ -55,35 +55,26 @@ year's folder) is safe: it keeps tags already filled in
 
 ### Stage 2 - browser editing and save (tagging_web)
 
-Run `../bin/tagging_server` from the project root. It boots a small Sinatra
+Run `../bin/tag` from the project root. It boots a small Sinatra
 app (`tagging_web/`) protected with HTTP Basic Auth and prints a
 URL/username/password to give to a reviewer on another machine on the same
 local network.
 
-The reviewer edits a single table page and presses save. Submissions are
-never written straight into `etl/tagging/<year>_tagging.csv` - they're saved
-as a "pending" proposal
-(`etl/tagging/pending/<year>_tagging.pending.csv`) and shown as a diff on a
-review page. Merging (from that same page) is what actually applies it to
-the real tagging file - the same propose -> review -> merge shape as a
-GitHub pull request, kept entirely local. See `Etl::TaggingReview`
-(`lib/etl/tagging_review.rb`) for the merge logic and `tagging_web/app.rb`
-for the routes.
+The reviewer edits one record at a time and presses Save & continue. Each
+save writes straight into `etl/tagging/<year>_tagging.csv` immediately.
 
-### Stage 3 - build the final yearly CSV and view report charts
+### Stage 3 - open report charts
 
-Once the tagging CSV has been filled in:
+Open `/:year/report` in the tagging web UI. This:
 
-```
-bundle exec ruby jobs/build_yearly_csv.rb 2023
-```
+1. runs `jobs/build_yearly_csv.rb <year>` using the latest saved tags
+2. writes/refreshes `etl/output/<year>.csv` (final report-ready output)
+3. shows `/:year/report` for quick year summary viewing
 
-Reads the `.docx` reports again, merges in the tags, and writes
-`etl/output/2023.csv` - the anonymised, per-year CSV for reporting and
-charting. Rows still containing a `TODO(Y/N)` placeholder are recorded as
-`Unknown`.
+Rows still containing a `TODO(Y/N)` placeholder are recorded as `Unknown`.
 
-Use `etl/output/<year>.csv` as the data source for your single dashboard page
+Use `etl/output/<year>.csv` (final output) as the data source for your single
+dashboard page
 (for example on GitHub Pages) showing chart summaries for:
 
 1. Split male/female
@@ -111,13 +102,13 @@ it either; refine the keyword list as real report language is reviewed.
 
 ## Anonymisation
 
-No name or date of birth is ever written to the output CSV. Each report
+No name or date of birth is ever written to the final output CSV. Each report
 gets a `pseudonymous_id`, a SHA-256 hash of the year, filename and a local
 salt (`etl/config/salt.txt`, generated on first run (git-ignore). The same file always produces the same id (so stage 1/2 rows match
 up), but the id cannot be reversed back to a filename or name.
 
-This is enforced in CI. `bin/check_anonymized.rb` scans every published
-CSV (`output/*.csv`) for forbidden columns (name, DOB, email, phone,
+This is enforced in CI. `bin/check_anonymized.rb` scans every final output CSV
+(`output/*.csv`) for forbidden columns (name, DOB, email, phone,
 address, ...) and for the presence of
 `pseudonymous_id`, and fails the build if either check fails. See
 `../.github/workflows/ci.yml`.
@@ -127,6 +118,6 @@ address, ...) and for the presence of
 `bin/generate_demo_data.rb YEAR` writes 40 rows of made-up demo data for a
 given year to stdout, with a few rates (sleep issues, stress/burnout,
 referrals) drifting slightly by year so the dashboard's trends chapter has
-something realistic to show. `../bin/run` (project root) runs this
+something realistic to show. `../bin/extract` (project root) runs this
 automatically for any `raw-data/<year>` folder that has no `.docx` reports
-in it yet, writing the result to `output/<year>.csv`.
+in it yet, writing the final output CSV to `output/<year>.csv`.
