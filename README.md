@@ -3,15 +3,15 @@
 This repo houses [Kiba](https://github.com/thbar/kiba) scripts written in Ruby
 to process healthcare reports while safeguarding client privacy.
 
-The goal was an open source, locally running tool that ingested word docs from
-the local filesystem, processed and converted data into csv format and provided
-a simple reporting dashboard to see trends over time.
+The goal is an open source, locally running tool that ingests word docs from
+the local filesystem, processes and converts data into csv format. Once data
+is standardised, provide a simple reporting dashboard to see trends over time.
 
 One key constraint was source data formatting. The word docs follow a standard 
 format, however no two word docs are the same when you consider hidden characters,
-blank spaces or fudgy fingers on the wrong keys. Therefore there needed to be
-a simple interface for manually reviewing large quantities of data and adjusting 
-values by hand where the system has not been able to accurately process.
+blank spaces or fudgy fingers pressing the wrong keys. Therefore a simple interface
+was needed for manually reviewing large quantities of data and adjusting 
+values by hand, where the system has not been able to accurately calculate.
 
 ```
 raw-data/*/           Source .docx reports (one folder per year)
