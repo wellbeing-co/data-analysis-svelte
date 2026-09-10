@@ -1,14 +1,7 @@
-<h1>Report summary - <%= @year %></h1>
+<h1>Report summary for <%= @year %></h1>
 
 <p class="hint">
-  <% if @source_mode == :output %>
-    Source: final report output file
-    <code>etl/output/<%= @year %>.csv</code> rebuilt from the latest saved tags
-    (<%= @summary[:total] %> record(s)).
-  <% else %>
-    Source: saved tagging data for <%= @year %> (<%= @summary[:total] %>
-    record(s)); yearly ETL output is currently unavailable.
-  <% end %>
+  Source: <%= @source_name.to_s.strip.empty? ? "raw data" : @source_name %>
 </p>
 
 <div class="actions">

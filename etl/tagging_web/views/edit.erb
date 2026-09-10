@@ -1,8 +1,4 @@
-<h1>Tag reports - <%= @year %></h1>
-
-<% if @saved %>
-  <p class="status success">Saved. Keep going to the next record.</p>
-<% end %>
+<h1>Verify Data for <%= @year %></h1>
 
 <div class="record-progress">
   <div>
@@ -71,3 +67,10 @@
     </div>
   </div>
 </form>
+
+<% if @flash_type %>
+  <aside class="flash-overlay flash-<%= @flash_type %>" role="status" aria-live="polite" data-flash-overlay>
+    <span class="flash-icon" aria-hidden="true"><%= @flash_type == "success" ? "✓" : "✕" %></span>
+    <span class="flash-label"><%= @flash_message %></span>
+  </aside>
+<% end %>

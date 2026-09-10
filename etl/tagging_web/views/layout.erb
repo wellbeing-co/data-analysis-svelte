@@ -3,12 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Complete Wellbeing - Tagging review</title>
+  <title>Healthcare Reports</title>
   <link rel="stylesheet" href="/style.css" />
+  <script src="/flash.js" defer></script>
 </head>
 <body class="<%= @page_class || (request.path_info.end_with?("/edit") ? "page-edit" : "") %>">
   <header class="topbar">
-    <a href="/" class="brand">Complete Wellbeing - Tagging review</a>
+    <a href="/" class="brand">Healthcare Reports</a>
   </header>
   <main>
     <%= yield %>

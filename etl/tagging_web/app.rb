@@ -24,6 +24,23 @@ module Etl
       end
     end
 
+    def self.source_name_for_rows(rows)
+      return "raw data" if rows.empty?
+
+      processed_count = rows.count { |row| row_processed?(row) }
+      return "raw data" if processed_count.zero?
+      return "verified data" if processed_count == rows.size
+
+      "mixed"
+    end
+
+    def self.row_processed?(row)
+      Etl::TaggingStore::TAG_COLUMNS.all? do |column|
+        %w[Y N UNKNOWN].include?(row[column].to_s.strip.upcase)
+      end
+    end
+    private_class_method :row_processed?
+
     helpers do
       def etl_root
         File.expand_path("..", __dir__)
@@ -202,7 +219,15 @@ module Etl
       @total_records = @rows.length
       @previous_index = [@record_index - 1, 0].max
       @next_index = [@record_index + 1, @total_records - 1].min
-      @saved = params[:saved] == "1"
+      @flash_type = params[:flash].to_s
+      unless ["success", "failure"].include?(@flash_type)
+        @flash_type = nil
+      end
+      @flash_message = if @flash_type == "success"
+        "Saved"
+      elsif @flash_type == "failure"
+        "Failed"
+      end
       erb :edit
     end
 
@@ -216,25 +241,32 @@ module Etl
       submitted = (params[:tags] || {}).each_with_object({}) do |(id, columns), out|
         out[id] = columns.to_h
       end
-      unless submitted.empty?
-        submitted.each do |id, columns|
-          row = rows_by_id[id]
-          next unless row
+      flash_type = "success"
 
-          Etl::TaggingStore::TAG_COLUMNS.each do |column|
-            value = normalized_tag_value(columns[column])
-            row[column] = value unless value.nil?
+      begin
+        unless submitted.empty?
+          submitted.each do |id, columns|
+            row = rows_by_id[id]
+            next unless row
+
+            Etl::TaggingStore::TAG_COLUMNS.each do |column|
+              value = normalized_tag_value(columns[column])
+              row[column] = value unless value.nil?
+            end
           end
-        end
 
-        Etl::TaggingStore.write(tagging_path, rows_by_id.values)
+          Etl::TaggingStore.write(tagging_path, rows_by_id.values)
+        end
+      rescue
+        flash_type = "failure"
       end
 
-      refresh_output(@year)
+      refresh_output(@year) if flash_type == "success"
 
       current_index = params[:at].to_i
       next_index = current_index + 1
-      redirect "/#{@year}/edit?at=#{next_index}&saved=1"
+      query = Rack::Utils.build_query(at: next_index, flash: flash_type)
+      redirect "/#{@year}/edit?#{query}"
     end
 
     get "/:year/review" do
@@ -258,6 +290,7 @@ module Etl
       end
 
       rows, @source_mode = self.class.preferred_report_rows(output_rows, rows_for(@year))
+      @source_name = self.class.source_name_for_rows(rows)
       @build_error = build_result[:output] if @source_mode == :tagging
 
       @summary = build_summary(rows)

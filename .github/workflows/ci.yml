@@ -6,9 +6,6 @@ on:
   pull_request:
 
 jobs:
-  # Certifies that nothing identifying ever reaches the public repo. This is
-  # the gate that must pass before anonymised data can be pushed - required
-  # in branch protection alongside the other jobs below.
   anonymisation-check:
     name: Anonymisation check
     runs-on: ubuntu-latest
@@ -17,7 +14,7 @@ jobs:
 
       - uses: ruby/setup-ruby@v1
         with:
-          ruby-version: "3.3"
+          ruby-version: "4.0.6"
           bundler-cache: true
           working-directory: etl
 
@@ -33,14 +30,12 @@ jobs:
 
       - uses: ruby/setup-ruby@v1
         with:
-          ruby-version: "3.3"
+          ruby-version: "4.0.6"
           bundler-cache: true
           working-directory: etl
 
       - name: Brakeman
         working-directory: etl
-        # --force: this is a Sinatra app (tagging_web), not Rails, so Brakeman
-        # needs to be told to scan it anyway; -A includes all checks.
         run: bundle exec brakeman . --force -A --no-exit-on-warn --exit-on-error
 
       - name: bundler-audit
@@ -57,7 +52,7 @@ jobs:
 
       - uses: ruby/setup-ruby@v1
         with:
-          ruby-version: "3.3"
+          ruby-version: "4.0.6"
           bundler-cache: true
           working-directory: etl
 
