@@ -73,7 +73,7 @@ class BinExtractTest < Minitest::Test
 
   def run_extract(project_root, year)
     env = {
-      "PATH" => "#{File.join(project_root, 'fake-bin')}:#{ENV.fetch('PATH')}",
+      "PATH" => "#{File.join(project_root, "fake-bin")}:#{ENV.fetch("PATH")}",
       "TERM" => "dumb"
     }
 
@@ -82,51 +82,51 @@ class BinExtractTest < Minitest::Test
 
   def test_bundle_script
     <<~BASH
-      #!/usr/bin/env bash
-      set -euo pipefail
-
-      if [ "$1" = "check" ]; then
-        exit 0
-      fi
-
-      if [ "$1" = "install" ]; then
-        exit 0
-      fi
-
-      if [ "$1" = "exec" ] && [ "$2" = "ruby" ]; then
-        script="$3"
-        year="$4"
-
-        case "$script" in
-          jobs/extract_for_tagging.rb)
-            mkdir -p tagging
-            cat > "tagging/${year}_tagging.csv" <<CSV
-pseudonymous_id,sleep_issue,stress_burnout,acupuncture_referral,mental_health_referral
-id-1,Y,N,N,N
-CSV
-            ;;
-          jobs/build_yearly_csv.rb)
-            mkdir -p output
-            cat > "output/${year}.csv" <<CSV
-pseudonymous_id,year
-id-1,${year}
-CSV
-            ;;
-          bin/generate_demo_data.rb)
-            echo "pseudonymous_id,year"
-            echo "demo-1,${year}"
-            ;;
-          *)
-            echo "Unexpected bundle exec ruby script: $script" >&2
+            #!/usr/bin/env bash
+            set -euo pipefail
+      
+            if [ "$1" = "check" ]; then
+              exit 0
+            fi
+      
+            if [ "$1" = "install" ]; then
+              exit 0
+            fi
+      
+            if [ "$1" = "exec" ] && [ "$2" = "ruby" ]; then
+              script="$3"
+              year="$4"
+      
+              case "$script" in
+                jobs/extract_for_tagging.rb)
+                  mkdir -p tagging
+                  cat > "tagging/${year}_tagging.csv" <<CSV
+      pseudonymous_id,sleep_issue,stress_burnout,acupuncture_referral,mental_health_referral
+      id-1,Y,N,N,N
+      CSV
+                  ;;
+                jobs/build_yearly_csv.rb)
+                  mkdir -p output
+                  cat > "output/${year}.csv" <<CSV
+      pseudonymous_id,year
+      id-1,${year}
+      CSV
+                  ;;
+                bin/generate_demo_data.rb)
+                  echo "pseudonymous_id,year"
+                  echo "demo-1,${year}"
+                  ;;
+                *)
+                  echo "Unexpected bundle exec ruby script: $script" >&2
+                  exit 2
+                  ;;
+              esac
+      
+              exit 0
+            fi
+      
+            echo "Unexpected bundle args: $*" >&2
             exit 2
-            ;;
-        esac
-
-        exit 0
-      fi
-
-      echo "Unexpected bundle args: $*" >&2
-      exit 2
     BASH
   end
 end
