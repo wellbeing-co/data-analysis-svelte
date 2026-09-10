@@ -72,7 +72,7 @@ pending_tag_count() {
 
 has_docx_reports() {
   local year_folder="$1"
-  find "$year_folder" -type f -iname '*.docx' ! -iname '~$*' ! -name '.*' 2>/dev/null | grep -q .
+  find "$year_folder" -type f -iname '*.docx' ! -iname '~$*' ! -name '.*' -print -quit 2>/dev/null | grep -q .
 }
 
 count_docx_top_level() {
