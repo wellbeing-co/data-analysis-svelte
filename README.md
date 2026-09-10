@@ -58,9 +58,9 @@ reviewers can update records in the browser.
    - Open the URL shown, review records, then Save & continue
 ```
 
-In the interests of open data, both intermediary and final artifacts are plain
-CSV files. Step 1 is post-extraction and data is stored at `etl/tagging/`.
-`etl/output/` is where final  report-ready data is stored after manual processing.
+Any files generated as part of the ETL process are stored as CSV files. Intermediary
+files generated as part of step 1 are stored at `etl/tagging/`. Final report files
+are stored at `etl/output/`.
 
 ## Reports
 
