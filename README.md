@@ -13,8 +13,6 @@ blank spaces or fudgy fingers on the wrong keys. Therefore there needed to be
 a simple interface for manually reviewing large quantities of data and adjusting 
 values by hand where the system has not been able to accurately process.
 
-Here's what's included:
-
 ```
 raw-data/*/           Source .docx reports (one folder per year)
 etl/                  Ruby/Kiba ETL: docx -> anonymised CSVs
@@ -22,22 +20,6 @@ bin/extract           Guided ETL walkthrough (extract -> edit -> report-ready)
 bin/tag               Browser UI with editable tagging table
 .github/workflows/    Ruby ETL quality + privacy checks
 ```
-
-## ETL pipeline
-
-```
-1. Perform extraction
-   - `$ cd etl && bundle exec bin/extract <year>`
-   - Writes `etl/tagging/<year>_tagging.csv`
-
-2. Open the browser tagging page and run reports
-   - Run `$ bin/tag`
-   - Open the URL shown, review records, then Save & continue
-```
-
-In the interests of open data, both intermediary and final artifacts are plain
-CSV files. Step 1 is post-extraction and data is stored at `etl/tagging/`.
-`etl/output/` is where final  report-ready data is stored after manual processing.
 
 ## Quick start
 
@@ -58,15 +40,29 @@ If a raw-data year folder has no `.docx` reports, `bin/extract` generates demo d
 that year in `etl/output/<year>.csv` so reports and charts can still load.
 
 ```
-bin/tag
+$ bin/tag
 ```
 
 This runs a local web app for the transform/tagging stage so non-technical
 reviewers can update records in the browser.
 
-## Dashboard questions covered
+## ETL pipeline
 
-The report page focuses on the following queries:
+```
+1. Perform extraction
+   - `cd etl && bundle exec bin/extract <year>`
+   - Writes `etl/tagging/<year>_tagging.csv`
+
+2. Open the browser tagging page and run reports
+   - Run `bin/tag`
+   - Open the URL shown, review records, then Save & continue
+```
+
+In the interests of open data, both intermediary and final artifacts are plain
+CSV files. Step 1 is post-extraction and data is stored at `etl/tagging/`.
+`etl/output/` is where final  report-ready data is stored after manual processing.
+
+## Reports
 
 1. Split male/female
 2. Age ranges
@@ -76,9 +72,17 @@ The report page focuses on the following queries:
 6. Number of acupuncture referrals
 7. Number of mental health referrals
 
-## Privacy
+## Anonymisation
 
 All CSV files generated are anonymous. Output includes only a non-reversible 
 `pseudonymous_id` age, gender and health metrics needed for aggregate analysis.
 
 See `etl/README.md` for ETL internals.
+
+## Contributing
+
+We encourage you to contribute to open source! Get involved and send a PR.
+
+## License
+
+This project is released under the [MIT License](https://opensource.org/licenses/MIT).
