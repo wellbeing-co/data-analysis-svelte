@@ -81,7 +81,7 @@ See `etl/README.md` for ETL internals.
 
 ## Contributing
 
-We encourage you to contribute to open source! Get involved and send a PR.
+I encourage you to contribute to open source! Get involved and send a PR.
 
 ## License
 
